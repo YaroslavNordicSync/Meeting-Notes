@@ -6,6 +6,12 @@ its commit message; open problems live in the project note, not here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follow the commit
 messages: `v0.MINOR.PATCH`, MINOR for a feature or substantial change, PATCH for a fix.
 
+## v0.12.1 — 2026-11-11
+### Fixed
+- Without the Accessibility permission a call silently came out as *Them*: the window and a
+  notification now say so during the call, and the names start as soon as it is given,
+  without starting the recording again.
+
 ## v0.12.0 — 2026-11-11
 ### Added
 - Names from Teams in a browser too (Chrome, Edge, Arc, Brave, Safari, Firefox): the

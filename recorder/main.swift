@@ -23,7 +23,7 @@
 // is talking — whenever that changes; t is seconds since "started". After a few
 // seconds of reading an app it says how big a look at it is, which tells whether
 // the page was readable at all. Without the Accessibility permission it says so
-// once and reads nothing.
+// once, and starts reading as soon as the permission is given.
 //   {"event":"speaking","t":12.5,"labels":["Anna Petrova, speaking"]}
 //   {"event":"looking","app":"com.google.Chrome","elements":3120,"seconds":0.21}
 //   {"event":"speaking","t":0,"labels":[],"unavailable":"no accessibility permission"}
@@ -363,10 +363,10 @@ func collectLabels(_ element: AXUIElement, _ pattern: NSRegularExpression,
 func watchSpeakers(_ pattern: NSRegularExpression, since began: Date) {
     Thread {
         let prompt = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
-        guard AXIsProcessTrustedWithOptions(prompt) else {
+        if !AXIsProcessTrustedWithOptions(prompt) {
             say(["event": "speaking", "t": 0, "labels": [String](),
                  "unavailable": "no accessibility permission"])
-            return
+            while !AXIsProcessTrusted() { Thread.sleep(forTimeInterval: 2) }
         }
         var last = Set<String>(), looks = [pid_t: Int]()
         while true {

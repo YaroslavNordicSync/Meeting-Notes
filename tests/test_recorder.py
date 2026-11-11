@@ -27,6 +27,12 @@ FAKE = textwrap.dedent('''\
         for _ in range(6):
             say(event="level", system=0.5, mic=0.0, system_frames=16000, mic_frames=16000)
     say(event="level", system=0.5, mic=0.25)
+    if "{mode}" == "noaccess":
+        say(event="speaking", t=0, labels=[], unavailable="no accessibility permission")
+        say(event="level", system=0.5, mic=0.5)
+        sys.stdin.readline()                    # the test gives the permission
+        say(event="looking", app="com.google.Chrome", elements=10, seconds=0.1)
+        say(event="level", system=0.5, mic=0.75)
     if "{mode}" == "teams" and len(sys.argv) == 3:      # given the speaking pattern
         say(event="looking", app="com.google.Chrome", elements=3120, seconds=0.21)
         say(event="speaking", t=0.4, labels=["Anna, speaking"])
@@ -89,6 +95,24 @@ def test_who_teams_showed_speaking_is_kept_with_the_recording(helper, caplog):
         [0.4, ["Anna, speaking"]], [1.2, []], [1.5, []]]
     # How big a look at the page was: whether Teams in the browser could be read at all.
     assert "from com.google.Chrome: 3120 elements in 0.21 s" in caplog.text
+
+
+def test_no_accessibility_is_said_during_the_call_and_cleared_once_given(helper):
+    helper("noaccess")
+    events = []
+    rec = Recorder()
+    rec.on_event = lambda kind, folder, message: events.append((kind, message))
+
+    rec.start()
+    assert wait_until(lambda: rec.snapshot()["mic"] == 0.5)
+    assert "Accessibility" in rec.snapshot()["warning"]
+    assert ("warning", rec.snapshot()["warning"]) in events     # a notification too
+
+    rec.proc.stdin.write("granted\n")
+    rec.proc.stdin.flush()
+    assert wait_until(lambda: rec.snapshot()["mic"] == 0.75)
+    assert rec.snapshot()["warning"] == ""
+    rec.stop()
 
 
 def test_a_refused_permission_is_reported_not_swallowed(helper):

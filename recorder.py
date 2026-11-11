@@ -22,6 +22,8 @@ from transcriber import Live
 log = logging.getLogger("pipeline")
 
 STOP_SECONDS = 10
+NO_NAMES = ("names need the Accessibility permission: System Settings > Privacy & "
+            "Security > Accessibility > Meeting Notes")
 # A microphone always hears something; this many seconds of exact zero is a
 # broken stream, not a quiet room.
 DEAD_MIC_SECONDS = 5
@@ -117,9 +119,13 @@ class Recorder:
             elif kind == "speaking":
                 if event.get("unavailable"):
                     log.warning("Cannot see who speaks in the call app: %s", event["unavailable"])
+                    self._warn(folder, NO_NAMES)
                 else:
                     speaking.append([round(event.get("t", 0.0), 2), event.get("labels", [])])
             elif kind == "looking":
+                with self._lock:            # given during the call: the warning is over
+                    if self._state["warning"] == NO_NAMES:
+                        self._state["warning"] = ""
                 log.info("Reading who speaks from %s: %s elements in %.2f s", event.get("app"),
                          event.get("elements"), event.get("seconds", 0.0))
             elif kind == "warning":
