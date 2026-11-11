@@ -28,6 +28,7 @@ FAKE = textwrap.dedent('''\
             say(event="level", system=0.5, mic=0.0, system_frames=16000, mic_frames=16000)
     say(event="level", system=0.5, mic=0.25)
     if "{mode}" == "teams" and len(sys.argv) == 3:      # given the speaking pattern
+        say(event="looking", app="com.google.Chrome", elements=3120, seconds=0.21)
         say(event="speaking", t=0.4, labels=["Anna, speaking"])
         say(event="speaking", t=1.2, labels=[])
     for _ in sys.stdin:
@@ -73,7 +74,7 @@ def test_a_recording_is_a_folder_with_both_streams_and_their_timing(helper):
     assert folder.parent == paths.recordings()
 
 
-def test_who_teams_showed_speaking_is_kept_with_the_recording(helper):
+def test_who_teams_showed_speaking_is_kept_with_the_recording(helper, caplog):
     helper("teams")
     events = []
     rec = Recorder()
@@ -86,6 +87,8 @@ def test_who_teams_showed_speaking_is_kept_with_the_recording(helper):
     assert wait_until(lambda: events == ["started", "transcribed"])
     assert json.loads((folder / "speaking.json").read_text()) == [
         [0.4, ["Anna, speaking"]], [1.2, []], [1.5, []]]
+    # How big a look at the page was: whether Teams in the browser could be read at all.
+    assert "from com.google.Chrome: 3120 elements in 0.21 s" in caplog.text
 
 
 def test_a_refused_permission_is_reported_not_swallowed(helper):

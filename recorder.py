@@ -119,6 +119,9 @@ class Recorder:
                     log.warning("Cannot see who speaks in the call app: %s", event["unavailable"])
                 else:
                     speaking.append([round(event.get("t", 0.0), 2), event.get("labels", [])])
+            elif kind == "looking":
+                log.info("Reading who speaks from %s: %s elements in %.2f s", event.get("app"),
+                         event.get("elements"), event.get("seconds", 0.0))
             elif kind == "warning":
                 self._warn(folder, event.get("what", ""))
             elif kind == "error":

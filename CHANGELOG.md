@@ -6,6 +6,13 @@ its commit message; open problems live in the project note, not here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follow the commit
 messages: `v0.MINOR.PATCH`, MINOR for a feature or substantial change, PATCH for a fix.
 
+## v0.12.0 — 2026-11-11
+### Added
+- Names from Teams in a browser too (Chrome, Edge, Arc, Brave, Safari, Firefox): the
+  recorder reads the window whose open tab is Teams. Teams must stay the open tab in its
+  window; the window itself can be behind others.
+- `logs/pipeline.log` notes, for each call, which app was read and how much of it.
+
 ## v0.11.1 — 2026-11-11
 ### Fixed
 - Spotlight showed two Meeting Notes apps: `build.sh` now builds into `dist.noindex/`, which

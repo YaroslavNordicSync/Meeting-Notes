@@ -231,15 +231,18 @@ two small models, about 45 MB, downloaded the first time) and their lines become
 ten seconds in the whole call is taken for a scrap of someone else's, not another
 person. If one person still comes out as two, give both the same name.
 
-**Names from Teams.** In a call in the Teams desktop app (not the browser), the
-recorder reads Teams' window twice a second through the accessibility API, the
-way a screen reader does, and notes whose tile says they are speaking
+**Names from Teams.** In a Teams call, in its app or in a browser (Chrome, Edge,
+Arc, Brave, Safari, Firefox), the recorder reads Teams twice a second through
+the accessibility API, the way a screen reader does, and notes whose tile says they are speaking
 (`speaking.json` in the recording's folder). After the call those names replace
 *Speaker N*: a line gets the name Teams showed while it was said, or else the
 name its voice had most often. Teams marks you speaking too; a name shown mostly
 while you talk is yours and never goes to their lines. It needs the
 *Accessibility* permission for Meeting Notes (asked on the first recording); without
-it, or in another app, you get *Speaker N* as before. No screenshots are taken.
+it, or in another app, you get *Speaker N* as before. In a browser, Teams has to
+be the open tab of its window (the window can be behind others): a browser shows
+nothing of its other tabs. `logs/pipeline.log` says how much of the page each
+call could read. No screenshots are taken.
 
 Above a meeting's transcript, *who is who* gives each voice a name; the name replaces the label in the notes as
 well, without running the model again. The model itself is told the speakers are

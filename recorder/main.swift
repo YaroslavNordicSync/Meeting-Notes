@@ -17,12 +17,15 @@
 //   {"event":"error","what":"...","status":-1}
 //   {"event":"stopped","seconds":63.2}
 //
-// With a pattern, it also reads the call app's window every half second (Teams,
-// through the accessibility API, the way a screen reader does) and says which of
-// its labels match — the ones that tell who is talking — whenever that changes;
-// t is seconds since "started". Without the Accessibility permission it says so
+// With a pattern, it also reads Teams every half second (its app, or a browser
+// window whose open tab is Teams, through the accessibility API, the way a
+// screen reader does) and says which of its labels match — the ones that tell who
+// is talking — whenever that changes; t is seconds since "started". After a few
+// seconds of reading an app it says how big a look at it is, which tells whether
+// the page was readable at all. Without the Accessibility permission it says so
 // once and reads nothing.
 //   {"event":"speaking","t":12.5,"labels":["Anna Petrova, speaking"]}
+//   {"event":"looking","app":"com.google.Chrome","elements":3120,"seconds":0.21}
 //   {"event":"speaking","t":0,"labels":[],"unavailable":"no accessibility permission"}
 //
 //   mn-recorder --watch
@@ -329,7 +332,12 @@ func watch() -> Never {
 
 // ------------------------------------------------------------------ who is speaking
 
-let CALL_APPS = ["com.microsoft.teams2", "com.microsoft.teams"]
+let TEAMS_APPS = ["com.microsoft.teams2", "com.microsoft.teams"]
+// A browser shows the accessibility API only the open tab of each window, so
+// Teams must be the open tab in its window; the window can be behind others.
+let BROWSERS = ["com.google.Chrome", "com.microsoft.edgemac", "company.thebrowser.Browser",
+                "com.brave.Browser", "com.apple.Safari", "org.mozilla.firefox"]
+let TEAMS_TITLE = "Microsoft Teams"
 let LARGEST_TREE = 20000        // elements read per look, so a huge window cannot stall it
 
 func axAttribute(_ element: AXUIElement, _ name: String) -> AnyObject? {
@@ -360,20 +368,33 @@ func watchSpeakers(_ pattern: NSRegularExpression, since began: Date) {
                  "unavailable": "no accessibility permission"])
             return
         }
-        var last = Set<String>(), opened: pid_t = 0
+        var last = Set<String>(), looks = [pid_t: Int]()
         while true {
             var found = Set<String>()
-            if let app = CALL_APPS.lazy.compactMap({
-                NSRunningApplication.runningApplications(withBundleIdentifier: $0).first }).first {
+            for app in NSWorkspace.shared.runningApplications {
+                guard let id = app.bundleIdentifier,
+                      TEAMS_APPS.contains(id) || BROWSERS.contains(id) else { continue }
                 let root = AXUIElementCreateApplication(app.processIdentifier)
-                if opened != app.processIdentifier {
-                    // A web view keeps its content from accessibility until a client asks.
-                    AXUIElementSetAttributeValue(root, "AXManualAccessibility" as CFString, kCFBooleanTrue)
-                    opened = app.processIdentifier
+                var windows = (axAttribute(root, "AXWindows") as? [AXUIElement]) ?? []
+                if BROWSERS.contains(id) {
+                    windows = windows.filter {
+                        ((axAttribute($0, "AXTitle") as? String) ?? "").contains(TEAMS_TITLE) }
                 }
+                if windows.isEmpty { continue }
+                let n = looks[app.processIdentifier, default: 0] + 1
+                looks[app.processIdentifier] = n
+                if n == 1 {
+                    // Web content stays hidden from accessibility until a client asks.
+                    AXUIElementSetAttributeValue(root, "AXManualAccessibility" as CFString, kCFBooleanTrue)
+                }
+                let start = Date()
                 var budget = LARGEST_TREE
-                for window in (axAttribute(root, "AXWindows") as? [AXUIElement]) ?? [] {
+                for window in windows {
                     collectLabels(window, pattern, &found, &budget)
+                }
+                if n == 10 {
+                    say(["event": "looking", "app": id, "elements": LARGEST_TREE - max(budget, 0),
+                         "seconds": Date().timeIntervalSince(start)])
                 }
             }
             if found != last {
