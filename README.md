@@ -202,7 +202,8 @@ and a level meter for each, so a silent stream shows up during the call.
 
 The first recording asks for two permissions, *Microphone* and *System Audio
 Recording*, and, for the names of the people in a Teams call, *Accessibility*.
-With an ad-hoc signed build, macOS may ask again after a rebuild.
+With an ad-hoc signed build, macOS may ask again after a rebuild; see
+`--make-identity` under *Notes on the build*.
 
 **Live transcript.** While the call runs, the window's live view shows what each
 side said, a few seconds behind. The app reads both files as they grow, cuts
@@ -581,9 +582,15 @@ Use the venv's Python, not the system one, or the dependencies will not be found
 
 ## Notes on the build
 
-The app is signed ad-hoc (`codesign --sign -`); a failed signature stops the
-build (the log is `build/py2app.log`). That is enough for it to keep
-its Automation and notification permissions between launches on your own machine.
+Once per Mac, `./build.sh --make-identity` puts a self-signed certificate,
+*Meeting Notes local signing*, in your login keychain, and every build after that
+is signed with it. macOS then sees each rebuild as the same app and keeps its
+permissions: Accessibility, Microphone, System Audio Recording, Automation. Without it
+the app is signed ad-hoc (`codesign --sign -`), which changes with every build, so
+each new build has to be given its permissions again (remove it from the list in
+System Settings and add it back). The first build with the certificate asks once
+to let `codesign` use it: *Always Allow*. A failed signature stops the build (the
+log is `build/py2app.log`).
 It is **not** notarised, so on someone else's Mac Gatekeeper will object on first
 open — right-click the app and choose Open, once.
 

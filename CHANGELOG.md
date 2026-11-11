@@ -6,6 +6,12 @@ its commit message; open problems live in the project note, not here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follow the commit
 messages: `v0.MINOR.PATCH`, MINOR for a feature or substantial change, PATCH for a fix.
 
+## v0.12.2 — 2026-11-11
+### Added
+- `./build.sh --make-identity`: a self-signed certificate in the login keychain, made once;
+  builds are signed with it, so a rebuilt app keeps its Accessibility, microphone and system
+  audio permissions. Without it builds stay ad-hoc, as before.
+
 ## v0.12.1 — 2026-11-11
 ### Fixed
 - Without the Accessibility permission a call silently came out as *Them*: the window and a
