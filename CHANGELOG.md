@@ -6,6 +6,11 @@ its commit message; open problems live in the project note, not here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follow the commit
 messages: `v0.MINOR.PATCH`, MINOR for a feature or substantial change, PATCH for a fix.
 
+## v0.11.1 — 2026-11-11
+### Fixed
+- Spotlight showed two Meeting Notes apps: `build.sh` now builds into `dist.noindex/`, which
+  Spotlight skips, so only the installed app is found.
+
 ## v0.11.0 — 2026-11-07
 ### Added
 - Real names for the other side of a Teams call: while recording, the helper reads Teams'

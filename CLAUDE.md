@@ -98,7 +98,7 @@ Checks before saying something is done:
   with `MEETING_NOTES_DATA` pointing at a temp folder, only if Ollama is up and the model is
   already pulled.
 - anything touching packaging (`setup.py`, new dependencies): `./build.sh`, then confirm the app
-  starts and `codesign -dv "dist/Meeting Notes.app"` shows a signature.
+  starts and `codesign -dv "dist.noindex/Meeting Notes.app"` shows a signature.
 - UI or menu bar changes can't be verified headless: say exactly what I need to click to check.
 
 ---

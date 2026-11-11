@@ -30,7 +30,8 @@ brew install ollama
 
 `build.sh` creates the virtualenv, installs the dependencies, draws the icons and
 produces **Meeting Notes.app** (~46 MB). With `--install` it also copies the app
-into `/Applications`. Without the flag the app is left in `dist/`.
+into `/Applications`. Without the flag the app is left in `dist.noindex/`, which
+Spotlight does not index, so search only ever finds the installed one.
 
 Then open it — from Launchpad, Spotlight, or:
 
@@ -603,7 +604,7 @@ tests/                            the fixture suite (pytest)
 requirements-dev.txt  pyproject.toml   pytest and ruff, and their settings
 ```
 
-Not committed: `.env`, `.venv/`, `build/`, `dist/`, and the leftover `logs/`,
+Not committed: `.env`, `.venv/`, `build/`, `dist.noindex/`, and the leftover `logs/`,
 `inbox/`, `processed/`, `failed/` from before the data folder moved. Settings and
 meeting notes never leave the machine, and never land in git.
 

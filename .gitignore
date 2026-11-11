@@ -2,6 +2,7 @@
 .venv/
 build/
 dist/
+dist.noindex/
 __pycache__/
 *.pyc
 

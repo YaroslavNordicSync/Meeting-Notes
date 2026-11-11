@@ -1,7 +1,8 @@
 #!/bin/bash
 # Build Meeting Notes.app
 #
-#   ./build.sh            build into dist/
+#   ./build.sh            build into dist.noindex/ (Spotlight skips it, so only
+#                         the installed app shows up there)
 #   ./build.sh --install  build, then copy into /Applications
 #
 set -euo pipefail
@@ -34,12 +35,13 @@ say "Drawing the icons"
 "$PY" assets/make_icon.py --icns >/dev/null
 
 say "Building the app"
-rm -rf dist build/bdist* build/lib*
+DIST=dist.noindex
+rm -rf "$DIST" build/bdist* build/lib*
 LOG=build/py2app.log
-"$PY" setup.py py2app >"$LOG" 2>&1 || {
+"$PY" setup.py py2app --dist-dir "$DIST" >"$LOG" 2>&1 || {
   echo "Build failed. Last lines of $LOG:"; tail -30 "$LOG"; exit 1; }
 
-APP="dist/Meeting Notes.app"
+APP="$DIST/Meeting Notes.app"
 [ -d "$APP" ] || { echo "No app produced; see $LOG"; exit 1; }
 
 # Ad-hoc signature, so macOS keeps the app's permissions between launches
