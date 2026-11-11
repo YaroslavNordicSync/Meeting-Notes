@@ -6,6 +6,11 @@ its commit message; open problems live in the project note, not here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follow the commit
 messages: `v0.MINOR.PATCH`, MINOR for a feature or substantial change, PATCH for a fix.
 
+## v0.12.3 — 2026-11-11
+### Added
+- The live view's "names need the Accessibility permission" warning has an *open settings*
+  button that opens that list in System Settings.
+
 ## v0.12.2 — 2026-11-11
 ### Added
 - `./build.sh --make-identity`: a self-signed certificate in the login keychain, made once;

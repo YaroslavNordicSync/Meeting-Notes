@@ -325,3 +325,12 @@ def test_a_voice_is_named_in_the_notes_and_the_transcript(api, meeting):
     assert api("GET", f"/api/meeting/{meeting}")[1]["_speakers"] == {old: "Anna"}
     assert api("POST", f"/api/meeting/{meeting}/speaker", {"from": old, "to": " "}
                )[1]["ok"] is False
+
+
+def test_the_settings_button_opens_the_accessibility_list(api, monkeypatch):
+    import controller
+    opened = []
+    monkeypatch.setattr(controller.subprocess, "run", lambda args, check: opened.append(args))
+
+    assert api("POST", "/api/open/accessibility", {}) == (200, {"ok": True})
+    assert opened == [["open", controller.ACCESSIBILITY_SETTINGS]]

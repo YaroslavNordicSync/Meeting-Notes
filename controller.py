@@ -26,6 +26,9 @@ from watcher import Watcher
 
 log = pipeline.log
 
+ACCESSIBILITY_SETTINGS = ("x-apple.systempreferences:com.apple.preference.security"
+                          "?Privacy_Accessibility")
+
 
 def osa(script: str) -> str:
     r = subprocess.run(["osascript", "-e", script], capture_output=True, text=True)
@@ -385,6 +388,11 @@ class Controller:
     def _meetings_in(folder) -> list:
         return [r["hash"] for r in history.recent(10000)
                 if archive.recording_of(r["source"]) == folder]
+
+    @staticmethod
+    def open_accessibility():
+        """System Settings at the list that gives Meeting Notes the call's names."""
+        subprocess.run(["open", ACCESSIBILITY_SETTINGS], check=False)
 
     def reveal(self, meeting: str) -> str:
         """Show the transcript in Finder. Returns why it could not, or ""."""

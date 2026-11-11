@@ -106,12 +106,14 @@ def test_no_accessibility_is_said_during_the_call_and_cleared_once_given(helper)
     rec.start()
     assert wait_until(lambda: rec.snapshot()["mic"] == 0.5)
     assert "Accessibility" in rec.snapshot()["warning"]
+    assert rec.snapshot()["no_access"]                          # the window's button
     assert ("warning", rec.snapshot()["warning"]) in events     # a notification too
 
     rec.proc.stdin.write("granted\n")
     rec.proc.stdin.flush()
     assert wait_until(lambda: rec.snapshot()["mic"] == 0.75)
     assert rec.snapshot()["warning"] == ""
+    assert not rec.snapshot()["no_access"]
     rec.stop()
 
 

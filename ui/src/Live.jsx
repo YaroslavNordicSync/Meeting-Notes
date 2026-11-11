@@ -57,6 +57,9 @@ export default function Live({ recording, refresh, say }) {
         )}
         <span className="spacer" />
         {recording.warning && on && <span className="bad small">{recording.warning}</span>}
+        {recording.no_access && on && (
+          <button onClick={() => api("/api/open/accessibility", {})}>open settings</button>
+        )}
         {on && <button className="stop" onClick={stop}>■ stop</button>}
       </header>
 

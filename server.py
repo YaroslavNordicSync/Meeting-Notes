@@ -190,6 +190,7 @@ class Handler(BaseHTTPRequestHandler):
                  "/api/settings": self._settings, "/api/account": self._account,
                  "/api/record": self._record,
                  "/api/call/dismiss": self._dismiss_call,
+                 "/api/open/accessibility": self._open_accessibility,
                  "/api/model/download": self._download_model,
                  "/api/account/test": self._account_test}.get(path)
         if not route:
@@ -321,6 +322,10 @@ class Handler(BaseHTTPRequestHandler):
 
     def _dismiss_call(self, _body):
         self.app.dismiss_call()
+        return {"ok": True}
+
+    def _open_accessibility(self, _body):
+        self.app.open_accessibility()
         return {"ok": True}
 
     def _account(self, body):
