@@ -11,7 +11,7 @@ import controller
 import paths
 from helpers import wait_until
 from recorder import Recorder
-from transcriber import Live
+from transcriber import Heard, Live
 
 FAKE = textwrap.dedent('''\
     #!{python}
@@ -55,8 +55,9 @@ def helper(tmp_path, monkeypatch):
         monkeypatch.setattr(paths, "recorder_binary", lambda: script)
     monkeypatch.setattr(paths, "DATA", tmp_path / "data")
     # No whisper either: the transcriber hears every piece as the same line.
+    hello = Heard("hello", "english")
     monkeypatch.setattr(Recorder, "make_live",
-                        staticmethod(lambda folder: Live(folder, transcribe=lambda s, p: "hello")))
+                        staticmethod(lambda folder: Live(folder, transcribe=lambda s, u: hello)))
     install()
     return install
 
@@ -82,6 +83,7 @@ def test_a_recording_is_a_folder_with_both_streams_and_their_timing(helper):
 
 def test_who_teams_showed_speaking_is_kept_with_the_recording(helper, caplog):
     helper("teams")
+    caplog.set_level("INFO", logger="pipeline")
     events = []
     rec = Recorder()
     rec.on_event = lambda kind, folder, message: events.append(kind)

@@ -9,7 +9,7 @@ from array import array
 import parser as tparser
 import transcriber
 from helpers import wait_until
-from transcriber import RATE, Line, Live, Segmenter, WavTail, echoes, is_speech
+from transcriber import RATE, Heard, Line, Live, Segmenter, WavTail, echoes, is_speech
 
 
 def tone(seconds, level=8000):
@@ -100,9 +100,9 @@ def test_a_call_becomes_a_transcript_the_pipeline_reads(tmp_path):
     into my microphone — growing while the call goes on."""
     said = {}
 
-    def whisper(samples, prompt):
+    def whisper(samples, usual):
         # Each burst is a different length; the length says which one it was.
-        return said.get(round(len(samples) / RATE), "Thank you.")
+        return Heard(said.get(round(len(samples) / RATE), "Thank you."), "english")
 
     system, mic = tmp_path / "system.wav", tmp_path / "mic.wav"
     start_wav(system)
@@ -129,7 +129,7 @@ def test_a_call_becomes_a_transcript_the_pipeline_reads(tmp_path):
 def test_a_silent_call_writes_nothing(tmp_path):
     start_wav(tmp_path / "system.wav")
     start_wav(tmp_path / "mic.wav")
-    live = Live(tmp_path, transcribe=lambda s, p: "Thank you.")
+    live = Live(tmp_path, transcribe=lambda s, u: Heard("Thank you.", "english"))
     live.start()
     assert live.finish() is None
     assert not list(tmp_path.glob("*.vtt"))
@@ -161,7 +161,7 @@ def test_words_show_while_they_are_said_and_the_line_takes_over_at_the_pause(tmp
     start_wav(tmp_path / "system.wav")
     start_wav(tmp_path / "mic.wav")
     heard = {"text": "so we were thinking"}
-    live = Live(tmp_path, transcribe=lambda samples, prompt: heard["text"])
+    live = Live(tmp_path, transcribe=lambda samples, usual: Heard(heard["text"], "english"))
     live.POLL = 0.05
     live.start()
 
@@ -180,39 +180,78 @@ def test_words_show_while_they_are_said_and_the_line_takes_over_at_the_pause(tmp
     live.finish()
 
 
-def test_whisper_is_given_what_that_side_said_last(tmp_path):
-    """Guessed from one line alone, an accented English line came out as Russian."""
-    # By the length of each burst; a piece is about a second longer (the pause).
-    said = {1: "We should ship on Friday.", 2: "And tell the client today.", 3: "Fine by me."}
-    prompts = {}
+def test_whisper_is_told_the_language_that_side_has_been_speaking(tmp_path):
+    """Before a side's first line the other side's language; after it, its own."""
+    said = {1: ("Мы выпускаем в пятницу.", "russian"), 2: ("And tell the client.", "english"),
+            3: ("Хорошо.", "russian")}
+    usual = {}
 
-    def whisper(samples, prompt):
-        text = said[round(len(samples) / RATE - 1)]
-        prompts[text] = prompt
-        return text
+    def whisper(samples, language):
+        text, spoken = said[round(len(samples) / RATE - 1)]
+        usual[text] = language
+        return Heard(text, spoken)
 
-    for name, bursts in (("system.wav", (1, 2)), ("mic.wav", (3,))):
+    for name, bursts in (("mic.wav", (1,)), ("system.wav", (2, 3))):
         start_wav(tmp_path / name)
         for seconds in bursts:
             append(tmp_path / name, quiet(1) + tone(seconds) + quiet(1))
     Live(tmp_path, transcribe=whisper).finish_all()
 
-    assert prompts["We should ship on Friday."] == ""
-    assert prompts["And tell the client today."] == "We should ship on Friday."
-    assert prompts["Fine by me."] == "", "the other side's words are not mine"
+    assert usual["Мы выпускаем в пятницу."] == ""           # nobody has spoken yet
+    assert usual["And tell the client."] == "russian"       # theirs, from my line
+    assert usual["Хорошо."] == "english"                     # their own last line
 
 
-def test_the_prompt_reaches_the_server(monkeypatch):
-    sent = {}
+class Server:
+    """whisper.cpp's /inference, answering each language it is asked for."""
 
-    class Reply:
-        def raise_for_status(self):
-            pass
+    def __init__(self, monkeypatch, answers):
+        self.asked = []
+        self.answers = answers
 
-        def json(self):
-            return {"text": " hello\n there "}
+        class Reply:
+            def __init__(self, body):
+                self.body = body
 
-    monkeypatch.setattr(transcriber.requests, "post",
-                        lambda url, files, data, timeout: sent.update(data) or Reply())
-    assert transcriber.WhisperServer().transcribe(tone(1), "earlier words") == "hello there"
-    assert sent["prompt"] == "earlier words"
+            def raise_for_status(self):
+                pass
+
+            def json(self):
+                return self.body
+
+        def post(url, files, data, timeout):
+            self.asked.append(data["language"])
+            return Reply(self.answers[data["language"]])
+
+        monkeypatch.setattr(transcriber.requests, "post", post)
+        monkeypatch.setenv("WHISPER_LANGUAGE", "auto")
+
+
+def test_an_unsure_guess_gives_way_to_the_usual_language(monkeypatch):
+    """The founder call: English, with a Russian accent, heard as Russian at 0.5."""
+    server = Server(monkeypatch, {
+        "auto": {"text": " Мы говорим", "language": "russian",
+                 "detected_language_probability": 0.51},
+        "english": {"text": " we were\n saying", "language": "english"}})
+
+    heard = transcriber.WhisperServer().transcribe(tone(1), "english")
+
+    assert heard == Heard("we were saying", "english")
+    assert server.asked == ["auto", "english"]
+
+
+def test_a_sure_guess_is_a_real_switch_of_language(monkeypatch):
+    server = Server(monkeypatch, {
+        "auto": {"text": "Давайте по-русски", "language": "russian",
+                 "detected_language_probability": 0.99}})
+
+    heard = transcriber.WhisperServer().transcribe(tone(1), "english")
+
+    assert heard == Heard("Давайте по-русски", "russian")
+    assert server.asked == ["auto"], "asked twice for a language it was sure of"
+
+
+def test_the_first_line_takes_whatever_whisper_heard(monkeypatch):
+    Server(monkeypatch, {"auto": {"text": "Hi", "language": "english",
+                                  "detected_language_probability": 0.4}})
+    assert transcriber.WhisperServer().transcribe(tone(1)) == Heard("Hi", "english")

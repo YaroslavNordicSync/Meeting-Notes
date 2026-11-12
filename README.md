@@ -220,9 +220,10 @@ recording's folder and summarised like any downloaded transcript, so the call
 lands in the meetings list (tagged *rec*) with its notes. Every meeting has a
 *notes / transcript* switch to read what was actually said.
 
-Each line is transcribed with what that side said just before it, so Whisper
-keeps to the language being spoken instead of guessing it from one line (an
-accent alone could make an English line come out in Russian).
+Whisper picks the language of every line by itself. When it is unsure (an
+accent alone can make an English line sound Russian, or a short one Japanese),
+the line is written in the language that side has been speaking; when it is
+sure, the call has really switched language, and the line follows it.
 `WHISPER_LANGUAGE` (default `auto`) can still be fixed to `ru` or `en`.
 
 **Who said what.** Everyone else in a call arrives mixed in one stream. When

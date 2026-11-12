@@ -165,6 +165,12 @@ class Segmenter:
 # ---------------------------------------------------------------- what came out
 
 @dataclass
+class Heard:
+    text: str
+    language: str       # as Whisper names it: "english", "russian"
+
+
+@dataclass
 class Line:
     who: str            # "me" or "them"
     start: float        # seconds from the start of the recording
@@ -258,7 +264,15 @@ def wav_bytes(samples: array) -> bytes:
 
 
 class WhisperServer:
-    """A whisper.cpp server of our own, with the model loaded once for the call."""
+    """A whisper.cpp server of our own, with the model loaded once for the call.
+
+    Whisper picks the language of each piece by itself, and on a short or
+    accented piece can pick the wrong one (Japanese, Russian for English). Every
+    such guess seen on real calls was unsure (below 0.75), while a language
+    really spoken came out at 0.9 and more; so an unsure guess gives way to the
+    language that side has been speaking, and a sure one is a real switch.
+    """
+    SURE = 0.8
 
     def __init__(self):
         self.proc = None
@@ -292,16 +306,25 @@ class WhisperServer:
                 time.sleep(0.5)
         raise RuntimeError("the speech model did not answer")
 
-    def transcribe(self, samples: array, prompt: str = "") -> str:
-        language = paths.setting("WHISPER_LANGUAGE") or "auto"
+    def transcribe(self, samples: array, usual: str = "") -> Heard:
+        """`usual`: the language this side has been speaking, or "" at first."""
+        fixed = paths.setting("WHISPER_LANGUAGE") or "auto"
+        heard = self._ask(samples, fixed)
+        language = heard.get("language") or ""
+        if (fixed == "auto" and usual and language != usual
+                and (heard.get("detected_language_probability") or 0) < self.SURE):
+            heard, language = self._ask(samples, usual), usual
+        # Whisper breaks lines inside a sentence now and then; a line is one line.
+        return Heard(" ".join((heard.get("text") or "").split()), language)
+
+    def _ask(self, samples: array, language: str) -> dict:
         r = requests.post(f"{self.url}/inference",
                           files={"file": ("piece.wav", wav_bytes(samples), "audio/wav")},
-                          data={"response_format": "json", "language": language,
-                                "temperature": "0", "prompt": prompt},
+                          data={"response_format": "verbose_json", "language": language,
+                                "temperature": "0"},
                           timeout=300)
         r.raise_for_status()
-        # Whisper breaks lines inside a sentence now and then; a line is one line.
-        return " ".join((r.json().get("text") or "").split())
+        return r.json()
 
     def stop(self):
         if self.proc and self.proc.poll() is None:
@@ -330,7 +353,6 @@ class Live:
     POLL = 0.5
     PARTIAL_EVERY = 0.8             # seconds of new speech before a partial is redone
     PARTIAL_SHORTEST = 1.0          # less than this is too little for Whisper to guess
-    CONTEXT_CHARS = 200             # of what a side said last, given to Whisper as a prompt
 
     def __init__(self, folder: Path, transcribe=None, relabel=None):
         self.folder = Path(folder)
@@ -343,6 +365,7 @@ class Live:
         self._relabel = relabel
         self.lines = []
         self.partial = {}               # who -> Line, the sentence still being said
+        self.language = {}              # who -> the language of their last line
         self._open = {}                 # who -> the reader's latest open piece
         # Changes whenever the lines do. Starts from the clock, so a new call
         # never repeats a number the page still holds from the last one.
@@ -449,20 +472,19 @@ class Live:
                 continue
             who, start, end, samples = piece
             try:
-                text = self._transcribe(samples, self._context(who))
+                heard = self._transcribe(samples, self._usual(who))
             except Exception as e:
                 log.error("Could not transcribe %.1f–%.1f s of %s: %s", start, end, who, e)
                 continue
-            if is_speech(text):
-                self._add(Line(who, round(start, 2), round(end, 2), text))
+            if is_speech(heard.text):
+                with self._lock:
+                    self.language[who] = heard.language
+                self._add(Line(who, round(start, 2), round(end, 2), heard.text))
 
-    def _context(self, who: str) -> str:
-        """What this side said last. Guessed from one line alone, an accent can
-        pass for another language; with the conversation so far, Whisper keeps
-        to the one being spoken."""
+    def _usual(self, who: str) -> str:
+        """The language this side spoke last; before their first line, the other side's."""
         with self._lock:
-            said = " ".join(line.text for line in self.lines if line.who == who)
-        return said[-self.CONTEXT_CHARS:]
+            return self.language.get(who) or next(iter(self.language.values()), "")
 
     def _partials(self):
         """Transcribe what is being said right now, for each side that has grown
@@ -478,7 +500,7 @@ class Live:
                                                        and end - done.end < self.PARTIAL_EVERY):
                 continue
             try:
-                text = self._transcribe(samples, self._context(who))
+                text = self._transcribe(samples, self._usual(who)).text
             except Exception as e:
                 log.error("Could not transcribe the open %s piece: %s", who, e)
                 continue

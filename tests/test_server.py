@@ -285,8 +285,8 @@ def test_a_meetings_transcript_is_read_again_from_its_source(api, meeting):
 def test_the_live_lines_come_from_the_call_being_recorded(api, app, tmp_path):
     assert api("GET", "/api/live")[1]["lines"] == []
 
-    from transcriber import Line, Live
-    live = app.recorder.live = Live(tmp_path, transcribe=lambda s, p: "")
+    from transcriber import Heard, Line, Live
+    live = app.recorder.live = Live(tmp_path, transcribe=lambda s, u: Heard("", ""))
     live._add(Line("them", 1, 2, "hello"))
     live._add(Line("me", 3, 4, "hi"))
 

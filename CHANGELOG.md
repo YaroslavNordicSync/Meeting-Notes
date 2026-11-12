@@ -6,6 +6,13 @@ its commit message; open problems live in the project note, not here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follow the commit
 messages: `v0.MINOR.PATCH`, MINOR for a feature or substantial change, PATCH for a fix.
 
+## v0.12.4 — 2026-11-11
+### Fixed
+- A call in Russian came out partly in English (and an English one could have come out in
+  Russian): the text hint from v0.10.2 held each side to the language of its first line, and
+  Whisper translated instead. Now Whisper's own guess is kept when it is sure (0.8 or more),
+  and an unsure line is written in the language that side has been speaking.
+
 ## v0.12.3 — 2026-11-11
 ### Added
 - The live view's "names need the Accessibility permission" warning has an *open settings*

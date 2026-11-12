@@ -6,7 +6,7 @@ import re
 import llm
 import parser as tparser
 import speakers
-from transcriber import Line, Live, to_vtt
+from transcriber import Heard, Line, Live, to_vtt
 
 
 def them(start, end, text="..."):
@@ -62,7 +62,7 @@ def test_the_vtt_carries_the_voices():
 def test_a_call_ends_with_its_voices_told_apart(tmp_path):
     for name in ("system.wav", "mic.wav"):
         (tmp_path / name).write_bytes(b"")
-    live = Live(tmp_path, transcribe=lambda s, p: "x",
+    live = Live(tmp_path, transcribe=lambda s, u: Heard("x", "english"),
                 relabel=lambda lines, folder, status: [Line("Speaker 1", 0, 1, "hello")])
     live.lines = [them(0, 1, "hello")]
     live.start()
