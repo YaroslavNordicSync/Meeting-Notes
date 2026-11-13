@@ -6,6 +6,13 @@ its commit message; open problems live in the project note, not here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follow the commit
 messages: `v0.MINOR.PATCH`, MINOR for a feature or substantial change, PATCH for a fix.
 
+## v0.14.1 — 2026-11-13
+### Fixed
+- The "Live call" item in the sidebar filled the whole list with a long red streak while
+  recording; it is one row with a small dot again.
+### Changed
+- In Deleted, the per-item button is just *Delete* (it still asks "sure?").
+
 ## v0.14.0 — 2026-11-13
 ### Changed
 - The window is redone white and blue, laid out like Granola: a sidebar with the record

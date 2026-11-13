@@ -57,9 +57,9 @@ export default function Sidebar({ state, view, selected, open, openMenu, setView
 
       <div className="list">
         {(rec.recording || rec.transcribing) && (
-          <div className={`item live ${view === "live" ? "on" : ""}`} onClick={() => setView("live")}>
+          <div className={`item now ${view === "live" ? "on" : ""}`} onClick={() => setView("live")}>
             <span className="title">{rec.recording ? "Live call" : "Last call"}</span>
-            <span className="dot live" />
+            <span className="dot now" />
           </div>
         )}
         {groups.map((g) => (

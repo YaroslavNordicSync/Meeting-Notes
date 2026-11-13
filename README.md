@@ -273,7 +273,7 @@ transcribed again or deleted.
 recording — into `archive/` in the data folder. *Deleted* at the foot of the
 sidebar shows what is there and restores it. After a week, a month or three
 months (Settings ▸ Deleted meetings, `ARCHIVE_DAYS`) it is removed for good — or
-at once: *Delete for good* on an item, or *Empty now* at the top. A downloaded
+at once: *Delete* on an item, or *Empty now* at the top. A downloaded
 transcript is never moved or deleted; the history remembers it as deleted, so
 the watcher does not summarise it again.
 

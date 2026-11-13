@@ -50,7 +50,7 @@ export default function Live({ recording, refresh, say }) {
   return (
     <div className="live">
       <header className="live-head">
-        <span className={`dot ${on ? "live" : "recorded"}`} />
+        <span className={`dot ${on ? "now" : "recorded"}`} />
         <span className="clock">{clock(s)}</span>
         {on && (
           <pre className="meters">{`me ${meter(recording.mic)}   them ${meter(recording.system)}`}</pre>

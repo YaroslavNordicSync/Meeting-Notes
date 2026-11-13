@@ -35,8 +35,8 @@ export default function Archive({ state, refresh, say }) {
                 <button onClick={() => act(`${base(e)}/restore`, say, refresh, () => say("Restored", "ok"))}>
                   Restore
                 </button>
-                <Sure label="Delete for good" run={() => act(`${base(e)}/remove`, say, refresh,
-                                                             () => say("Deleted for good", "ok"))} />
+                <Sure label="Delete" run={() => act(`${base(e)}/remove`, say, refresh,
+                                                             () => say("Deleted", "ok"))} />
               </div>
             );
           })}
