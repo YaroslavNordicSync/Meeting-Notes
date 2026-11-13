@@ -272,7 +272,8 @@ transcribed again or deleted.
 *Delete* on a meeting moves its notes — and, for a recorded call, the whole
 recording — into `archive/` in the data folder. *archived* in the sidebar, under
 *meetings*, shows what is there and restores it. After a week, a month or three
-months (Settings ▸ archive, `ARCHIVE_DAYS`) it is removed for good. A downloaded
+months (Settings ▸ archive, `ARCHIVE_DAYS`) it is removed for good — or at once:
+*delete for good* in an item's ⋯ menu, or *empty now* above the list. A downloaded
 transcript is never moved or deleted; the history remembers it as deleted, so
 the watcher does not summarise it again.
 

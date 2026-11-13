@@ -6,6 +6,14 @@ its commit message; open problems live in the project note, not here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follow the commit
 messages: `v0.MINOR.PATCH`, MINOR for a feature or substantial change, PATCH for a fix.
 
+## v0.13.1 — 2026-11-13
+### Added
+- An archived item can be deleted for good right away: *delete for good* in its ⋯ menu,
+  asked once more before it goes.
+- *empty now* above the archive list removes everything in the archive at once, also
+  after a second click. The history still remembers each meeting, so nothing is
+  summarised again.
+
 ## v0.13.0 — 2026-11-12
 ### Changed
 - After a call, the whole recording is transcribed again in one pass, in chunks of up to

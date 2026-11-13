@@ -138,8 +138,15 @@ def entries() -> list:
     return out
 
 
+def remove(entry_id: str):
+    """Remove one archived item for good, without waiting for its day."""
+    entry, _ = _entry(entry_id)
+    shutil.rmtree(entry)
+
+
 def purge(now: float = None) -> int:
-    """Remove for good what has been in the archive longer than ARCHIVE_DAYS."""
+    """Remove for good what has been in the archive longer than ARCHIVE_DAYS;
+    `now=math.inf` empties the whole archive."""
     now = now or time.time()
     gone = 0
     for item in entries():

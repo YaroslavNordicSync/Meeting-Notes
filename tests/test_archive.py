@@ -86,6 +86,25 @@ def test_the_archive_empties_itself_after_the_chosen_days(box, temp_env, summari
     assert history.find(meeting)["status"] == "archived"
 
 
+def test_an_item_can_go_for_good_now_or_the_whole_archive_at_once(box, temp_env, summarised):
+    first, _ = summarised(box.inbox, "standup.vtt")
+    archive.archive_meeting(first)
+    archive.archive_recording(recorded_call().name)
+    archive.archive_recording(recorded_call("2026-11-02 10-00-00").name)
+    entry = archive.entries()[0]["id"]
+
+    archive.remove(entry)
+    assert len(archive.entries()) == 2
+    with pytest.raises(KeyError):
+        archive.remove(entry)
+    with pytest.raises(KeyError):
+        archive.remove("../../etc")
+
+    assert controller.Controller().empty_archive() == 2
+    assert archive.entries() == []
+    assert history.find(first)["status"] == "archived"
+
+
 def test_only_a_week_a_month_or_three_months(box, temp_env):
     app = controller.Controller()
     app.set_archive_days(90)

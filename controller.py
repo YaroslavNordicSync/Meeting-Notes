@@ -5,6 +5,7 @@ of a setting, and neither owns the watcher. `on_change` and `on_notice` are
 called on whatever thread made the change — the menu bar hops to the main thread
 inside them, the window simply polls.
 """
+import math
 import subprocess
 import threading
 import time
@@ -347,6 +348,15 @@ class Controller:
     def restore(self, entry_id: str):
         archive.restore(entry_id)
         self._changed()
+
+    def remove_archived(self, entry_id: str):
+        archive.remove(entry_id)
+        self._changed()
+
+    def empty_archive(self) -> int:
+        gone = archive.purge(now=math.inf)
+        self._changed()
+        return gone
 
     # ------------------------------------------------------------ transcribing again
 

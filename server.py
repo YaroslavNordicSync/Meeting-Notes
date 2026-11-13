@@ -36,9 +36,9 @@ TOKEN = secrets.token_urlsafe(24)
 # /api/meeting/<hash>, and what can be done to it
 RE_MEETING = re.compile(r"^/api/meeting/([0-9a-f]{64})"
                         r"(?:/(send|retry|reveal|transcript|archive|transcribe|speaker))?$")
-# /api/recording/<folder name>/... and /api/archive/<entry id>/restore, names URL-encoded
+# /api/recording/<folder name>/... and /api/archive/<entry id>/..., names URL-encoded
 RE_RECORDING = re.compile(r"^/api/recording/([^/]+)/(archive|transcribe)$")
-RE_RESTORE = re.compile(r"^/api/archive/([^/]+)/restore$")
+RE_ARCHIVED = re.compile(r"^/api/archive/([^/]+)/(restore|remove)$")
 
 
 def state(app: controller.Controller) -> dict:
@@ -182,7 +182,7 @@ class Handler(BaseHTTPRequestHandler):
         m = RE_MEETING.match(path)
         if m:
             return self._meeting(m.group(1), m.group(2), body)
-        m = RE_RECORDING.match(path) or RE_RESTORE.match(path)
+        m = RE_RECORDING.match(path) or RE_ARCHIVED.match(path)
         if m:
             return self._library(m, unquote(m.group(1)))
         route = {"/api/pick": self._pick, "/api/pick/folder": self._pick_folder,
@@ -191,6 +191,7 @@ class Handler(BaseHTTPRequestHandler):
                  "/api/record": self._record,
                  "/api/call/dismiss": self._dismiss_call,
                  "/api/open/accessibility": self._open_accessibility,
+                 "/api/archive/empty": self._empty_archive,
                  "/api/model/download": self._download_model,
                  "/api/account/test": self._account_test}.get(path)
         if not route:
@@ -211,11 +212,11 @@ class Handler(BaseHTTPRequestHandler):
         return live.snapshot(int((query.get("version") or ["-1"])[0]))
 
     def _library(self, m, name: str):
-        """Deleting, restoring and transcribing again: by a recording's folder
-        name or an archive entry's id, each checked against what exists."""
-        action = m.group(2) if m.re is RE_RECORDING else "restore"
+        """Deleting, restoring, removing for good and transcribing again: by a
+        recording's folder name or an archive entry's id, each checked against
+        what exists."""
         work = {"archive": self.app.archive_recording, "transcribe": self.app.retranscribe,
-                "restore": self.app.restore}[action]
+                "restore": self.app.restore, "remove": self.app.remove_archived}[m.group(2)]
         try:
             work(name)
         except KeyError as e:
@@ -327,6 +328,9 @@ class Handler(BaseHTTPRequestHandler):
     def _open_accessibility(self, _body):
         self.app.open_accessibility()
         return {"ok": True}
+
+    def _empty_archive(self, _body):
+        return {"ok": True, "gone": self.app.empty_archive()}
 
     def _account(self, body):
         problem = self.app.save_account(body["address"], body.get("password", ""))

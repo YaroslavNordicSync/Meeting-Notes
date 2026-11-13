@@ -309,6 +309,13 @@ def test_deleting_and_restoring_through_the_window(api, meeting):
 
     for bad in ("..%2F..%2Fetc", quote("2026-11-01 10-00-00 zzzzzz")):
         assert api("POST", f"/api/archive/{bad}/restore", {})[0] == 404
+        assert api("POST", f"/api/archive/{bad}/remove", {})[0] == 404
+
+    assert api("POST", f"/api/meeting/{meeting}/archive", {}) == (200, {"ok": True})
+    entry = api("GET", "/api/state")[1]["archive"][0]["id"]
+    assert api("POST", f"/api/archive/{quote(entry)}/remove", {}) == (200, {"ok": True})
+    assert api("GET", "/api/state")[1]["archive"] == []
+    assert api("POST", "/api/archive/empty", {}) == (200, {"ok": True, "gone": 0})
     assert api("POST", "/api/recording/..%2Fhistory.db/archive", {})[0] == 404
     # Only a recorded call has audio to transcribe again.
     assert api("POST", f"/api/meeting/{meeting}/transcribe", {})[1]["ok"] is False

@@ -68,6 +68,7 @@ export default function Meetings({ state, archive, selected, onSelect, refresh, 
                  onChange={(e) => setQuery(e.target.value)} />
           <div className="filters">
             {archive && <span className="archive-title">deleted for good after {state.archive_days} days</span>}
+            {archive && all.length > 0 && <EmptyArchive say={say} refresh={refresh} gone={() => onSelect(null)} />}
             {!archive && FILTERS.map(([name]) => (
               <button key={name} className={filter === name ? "on" : ""}
                       onClick={() => setFilter(name)}>{name}</button>
@@ -127,8 +128,12 @@ export default function Meetings({ state, archive, selected, onSelect, refresh, 
 // What can be done to an item, in the order the menu shows it.
 function actionsFor(item, state, say, refresh, gone) {
   if (item.kind === "archived") {
-    return [{ label: "restore", run: () => act(`/api/archive/${encodeURIComponent(item.entry.id)}/restore`,
-                                              say, refresh, () => { say("Restored", "ok"); gone(); }) }];
+    const base = `/api/archive/${encodeURIComponent(item.entry.id)}`;
+    return [
+      { label: "restore", run: () => act(`${base}/restore`, say, refresh, () => { say("Restored", "ok"); gone(); }) },
+      { label: "delete for good", danger: true, confirm: true,
+        run: () => act(`${base}/remove`, say, refresh, () => { say("Deleted for good", "ok"); gone(); }) },
+    ];
   }
   if (item.kind === "recording") {
     const base = `/api/recording/${encodeURIComponent(item.recording.name)}`;
@@ -189,6 +194,21 @@ function Menu({ at, actions, close }) {
         </button>
       ))}
     </div>
+  );
+}
+
+// Everything in the archive, for good, at once. Asks once more first.
+function EmptyArchive({ say, refresh, gone }) {
+  const [armed, setArmed] = useState(false);
+  return (
+    <button className="danger" onBlur={() => setArmed(false)}
+            onClick={() => {
+              if (!armed) return setArmed(true);
+              setArmed(false);
+              act("/api/archive/empty", say, refresh, () => { say("Archive emptied", "ok"); gone(); });
+            }}>
+      {armed ? "empty — sure?" : "empty now"}
+    </button>
   );
 }
 
@@ -272,7 +292,8 @@ function Archived({ entry, days, more }) {
       <p className="dim">
         In the archive since {new Date(entry.archived_at * 1000).toLocaleDateString("en-GB")}.
         {" "}Removed for good in {left} day{left === 1 ? "" : "s"} (the archive keeps things {days} days;
-        change it in settings). Restore, from ⋯, puts everything back where it was.
+        change it in settings). Restore, from ⋯, puts everything back where it was;
+        {" "}delete for good removes it now.
       </p>
     </div>
   );
