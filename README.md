@@ -215,7 +215,12 @@ repeats theirs from the same moment is dropped as that echo. (Apple's own voice
 processing is not used: it starved the system audio tap.) Headphones still give
 the cleanest result.
 
-**After the call** the lines are saved as `Call <date time>.vtt` in the
+**After the call** the whole recording is transcribed again in one pass, which
+is what you keep: the live lines are only a preview. Both files are cut into
+chunks of up to 30 seconds at real pauses, so Whisper hears whole sentences
+instead of the few seconds the preview had, and splits them into lines with their
+own times. It takes a while (the window says how far it is); if it fails, the
+preview is kept. The lines are saved as `Call <date time>.vtt` in the
 recording's folder and summarised like any downloaded transcript, so the call
 lands in the meetings list (tagged *rec*) with its notes. Every meeting has a
 *notes / transcript* switch to read what was actually said.

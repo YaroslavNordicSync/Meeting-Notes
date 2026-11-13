@@ -112,7 +112,9 @@ def test_a_call_becomes_a_transcript_the_pipeline_reads(tmp_path):
     live.start()
 
     said.update({3: "Let's move the release to Friday", 2: "Who takes the migration?",
-                 4: "I can take the migration"})
+                 4: "I can take the migration",
+                 # After the call their two sentences, a second apart, are one chunk.
+                 6: "Let's move the release to Friday. Who takes the migration?"})
     append(system, quiet(1) + tone(2.4) + quiet(1))     # them
     append(mic, quiet(1) + tone(2.4, 2000) + quiet(1))  # their words, back through my mic
     assert wait_until(lambda: live.snapshot()["count"] >= 1)
@@ -193,8 +195,8 @@ def test_whisper_is_told_the_language_that_side_has_been_speaking(tmp_path):
 
     for name, bursts in (("mic.wav", (1,)), ("system.wav", (2, 3))):
         start_wav(tmp_path / name)
-        for seconds in bursts:
-            append(tmp_path / name, quiet(1) + tone(seconds) + quiet(1))
+        for seconds in bursts:      # far enough apart to stay separate chunks
+            append(tmp_path / name, quiet(2) + tone(seconds) + quiet(2))
     Live(tmp_path, transcribe=whisper).finish_all()
 
     assert usual["Мы выпускаем в пятницу."] == ""           # nobody has spoken yet
@@ -255,3 +257,50 @@ def test_the_first_line_takes_whatever_whisper_heard(monkeypatch):
     Server(monkeypatch, {"auto": {"text": "Hi", "language": "english",
                                   "detected_language_probability": 0.4}})
     assert transcriber.WhisperServer().transcribe(tone(1)) == Heard("Hi", "english")
+
+
+# ---------------------------------------------------------------- after the call
+
+def test_utterances_a_short_pause_apart_are_one_chunk_up_to_thirty_seconds():
+    pieces = [(0, 5, None), (5.5, 14, None), (14.2, 29, None), (29.3, 35, None),
+              (40, 42, None)]
+    assert transcriber.chunks(pieces) == [[0, 29], [29.3, 35], [40, 42]]
+
+
+def test_the_whole_call_is_transcribed_again_and_its_sentences_kept_apart(tmp_path):
+    """The preview heard pieces; after the call Whisper hears the whole chunk
+    and splits it into its own sentences, with their times."""
+    def whisper(samples, usual):
+        if round(len(samples) / RATE) == 6:       # the chunk after the call
+            return Heard("We ship Friday. Who migrates?", "english",
+                         [(0.2, 2.5, "We ship Friday."), (3.6, 5.0, "Who migrates?")])
+        return Heard("we ship", "english")        # what the preview heard
+
+    start_wav(tmp_path / "mic.wav")
+    start_wav(tmp_path / "system.wav")
+    live = Live(tmp_path, transcribe=whisper)
+    live.POLL = 0.05
+    live.start()
+    append(tmp_path / "system.wav", quiet(1) + tone(2.4) + quiet(1) + tone(1.4) + quiet(5.5))
+    assert wait_until(lambda: live.snapshot()["count"] >= 1)
+
+    vtt = live.finish()
+
+    assert [(line["start"], line["text"]) for line in live.snapshot()["lines"]] == [
+        (0.95, "We ship Friday."), (4.35, "Who migrates?")]
+    assert "we ship" not in vtt.read_text()
+
+
+def test_a_failed_second_pass_keeps_the_preview(tmp_path):
+    start_wav(tmp_path / "mic.wav")
+    start_wav(tmp_path / "system.wav")
+    live = Live(tmp_path, transcribe=lambda s, u: Heard("We ship Friday.", "english"))
+    live.lines = [Line("them", 0, 2, "We ship Friday.")]
+
+    def broken():
+        raise RuntimeError("the speech model went away")
+
+    live._final = broken
+    vtt = live.finish()
+
+    assert tparser.parse(vtt).turns == [("Them", "We ship Friday.")]

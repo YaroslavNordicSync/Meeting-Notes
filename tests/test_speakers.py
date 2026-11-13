@@ -64,7 +64,7 @@ def test_a_call_ends_with_its_voices_told_apart(tmp_path):
         (tmp_path / name).write_bytes(b"")
     live = Live(tmp_path, transcribe=lambda s, u: Heard("x", "english"),
                 relabel=lambda lines, folder, status: [Line("Speaker 1", 0, 1, "hello")])
-    live.lines = [them(0, 1, "hello")]
+    live._final = lambda: [them(0, 1, "hello")]       # what the whole call came to
     live.start()
 
     vtt = live.finish()

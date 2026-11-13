@@ -3,9 +3,11 @@
 The Swift helper writes system.wav (them) and mic.wav (me) as 16 kHz mono
 16-bit and keeps appending to both. `Live` reads them as they grow, cuts each
 stream into utterances at its pauses, and has a local whisper.cpp server
-transcribe them one at a time. The lines show in the window during the call;
-when it ends they are written out as a .vtt, which the pipeline summarises like
-any downloaded transcript.
+transcribe them one at a time. The lines show in the window during the call,
+as a preview. When it ends, the whole recording is transcribed again in one
+pass, in chunks of up to 30 s cut at real pauses, so Whisper hears whole
+sentences; that is the .vtt, which the pipeline summarises like any downloaded
+transcript.
 
 Echo: without headphones the others' voices come back in through the
 microphone. The helper's voice processing removes most of it; what is left is
@@ -24,7 +26,7 @@ import threading
 import time
 import wave
 from array import array
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
 import requests
@@ -168,6 +170,8 @@ class Segmenter:
 class Heard:
     text: str
     language: str       # as Whisper names it: "english", "russian"
+    # (start s, end s, text) inside the piece, when Whisper split it into sentences
+    segments: list = field(default_factory=list)
 
 
 @dataclass
@@ -199,6 +203,18 @@ NOT_SPEECH = re.compile(
 
 def is_speech(text: str) -> bool:
     return bool(words(text)) and not NOT_SPEECH.match(text)
+
+
+def chunks(pieces: list, gap: float = 1.5, longest: float = 30.0) -> list:
+    """Utterances joined into [start s, end s] chunks of up to `longest` seconds:
+    a pause shorter than `gap` stays inside a chunk."""
+    out = []
+    for start, end, _ in pieces:
+        if out and start - out[-1][1] < gap and end - out[-1][0] <= longest:
+            out[-1][1] = end
+        else:
+            out.append([start, end])
+    return out
 
 
 def stamp(seconds: float) -> str:
@@ -315,7 +331,9 @@ class WhisperServer:
                 and (heard.get("detected_language_probability") or 0) < self.SURE):
             heard, language = self._ask(samples, usual), usual
         # Whisper breaks lines inside a sentence now and then; a line is one line.
-        return Heard(" ".join((heard.get("text") or "").split()), language)
+        return Heard(" ".join((heard.get("text") or "").split()), language,
+                     [(s["start"], s["end"], " ".join(s["text"].split()))
+                      for s in heard.get("segments") or []])
 
     def _ask(self, samples: array, language: str) -> dict:
         r = requests.post(f"{self.url}/inference",
@@ -398,20 +416,32 @@ class Live:
     def finish_all(self) -> Path:
         """Transcribe a finished recording from start to end, in one go."""
         self._stopping.set()
-        self.start()
-        return self.finish()
+        if self.server:
+            self.server.start(status=lambda text: self._set(status=text))
+        return self._finish()
 
     def finish(self, timeout: float = None) -> Path:
-        """Transcribe what is left, write the .vtt and return it — or None when
-        nothing was said. Blocks until the last piece is done."""
+        """Stop the preview, transcribe the whole call again, write the .vtt and
+        return it — or None when nothing was said. Blocks until it is done."""
         self._stopping.set()
         for t in self._threads:
             t.join(timeout)
-        if self.server:
-            self.server.stop()
+        return self._finish()
+
+    def _finish(self) -> Path:
         with self._lock:
-            lines = list(self.lines)
             self.partial = {}
+        try:
+            lines = self._final()
+        except Exception as e:
+            # The preview is worse, but it is what was said.
+            log.error("Could not transcribe %s again; keeping the live lines: %s",
+                      self.folder.name, e)
+            with self._lock:
+                lines = list(self.lines)
+        finally:
+            if self.server:
+                self.server.stop()
         if lines and self._relabel:
             lines = self._relabel(lines, self.folder, lambda text: self._set(status=text))
         with self._lock:
@@ -425,6 +455,32 @@ class Live:
         return out
 
     # -------------------------------------------------- internals
+
+    def _final(self) -> list:
+        """Both streams from start to end, chunk by chunk; my lines that are
+        their words heard again through the microphone are dropped."""
+        streams = []
+        for who, (tail, _) in self.streams.items():
+            samples = WavTail(tail.path).read()
+            segmenter = Segmenter()
+            streams.append((who, samples, chunks(segmenter.feed(samples) + segmenter.flush())))
+        total, done, lines = sum(len(c) for _, _, c in streams), 0, []
+        for who, samples, spans in streams:
+            for start, end in spans:
+                done += 1
+                self._set(status=f"transcribing the whole call {done}/{total}")
+                heard = self._transcribe(samples[int(start * RATE):int(end * RATE)],
+                                         self._usual(who))
+                if is_speech(heard.text):
+                    with self._lock:
+                        self.language[who] = heard.language
+                for s, e, text in heard.segments or [(0.0, end - start, heard.text)]:
+                    if is_speech(text):
+                        lines.append(Line(who, round(start + s, 2), round(start + e, 2), text))
+        theirs = [line for line in lines if line.who == "them"]
+        lines = [line for line in lines
+                 if line.who != "me" or not any(echoes(line, t) for t in theirs)]
+        return sorted(lines, key=lambda line: line.start)
 
     def _set(self, **values):
         with self._lock:

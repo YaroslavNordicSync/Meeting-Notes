@@ -6,6 +6,13 @@ its commit message; open problems live in the project note, not here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follow the commit
 messages: `v0.MINOR.PATCH`, MINOR for a feature or substantial change, PATCH for a fix.
 
+## v0.13.0 — 2026-11-12
+### Changed
+- After a call, the whole recording is transcribed again in one pass, in chunks of up to
+  30 s cut at real pauses; that is the transcript that is kept. The live lines during the
+  call are only a preview. If the second pass fails, the preview is kept.
+- *Transcribe again* on a recording runs the same single pass instead of replaying the call.
+
 ## v0.12.4 — 2026-11-11
 ### Fixed
 - A call in Russian came out partly in English (and an English one could have come out in
