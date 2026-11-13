@@ -43,24 +43,24 @@ export default function Live({ recording, refresh, say }) {
     : !on && recording.transcribing
       ? (status.status && !["listening", "done"].includes(status.status) ? `${status.status}…`
                                                                          : "transcribing the last words…")
-    : !on ? "saved — the notes are being written, they will appear under meetings"
+    : !on ? "saved — the notes are being written, they will appear in the list"
     : status.status === "listening" ? (lines.length ? "" : "listening — the first words appear a few seconds after they are said")
     : status.status;
 
   return (
     <div className="live">
       <header className="live-head">
-        <span className={`dot ${on ? "on" : ""}`} />
+        <span className={`dot ${on ? "live" : "recorded"}`} />
         <span className="clock">{clock(s)}</span>
         {on && (
           <pre className="meters">{`me ${meter(recording.mic)}   them ${meter(recording.system)}`}</pre>
         )}
         <span className="spacer" />
-        {recording.warning && on && <span className="bad small">{recording.warning}</span>}
+        {recording.warning && on && <span className="bad">{recording.warning}</span>}
         {recording.no_access && on && (
-          <button onClick={() => api("/api/open/accessibility", {})}>open settings</button>
+          <button onClick={() => api("/api/open/accessibility", {})}>Open settings</button>
         )}
-        {on && <button className="stop" onClick={stop}>■ stop</button>}
+        {on && <button className="stop" onClick={stop}>■ Stop</button>}
       </header>
 
       <div className="live-lines" ref={box}

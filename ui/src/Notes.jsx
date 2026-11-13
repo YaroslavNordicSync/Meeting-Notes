@@ -20,8 +20,8 @@ export default function Notes({ meeting, state, head, refresh, say }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [meeting.hash]);
 
-  if (error) return <div className="doc">{head}<p className="bad">{error}</p></div>;
-  if (!notes) return <div className="doc">{head}<p className="dim">loading…</p></div>;
+  if (error) return <div className="page doc">{head}<p className="bad">{error}</p></div>;
+  if (!notes) return <div className="page doc">{head}<p className="dim">Loading…</p></div>;
 
   const set = (key) => (value) => setNotes({ ...notes, [key]: value });
   const setRow = (key, i, row) =>
@@ -60,48 +60,48 @@ export default function Notes({ meeting, state, head, refresh, say }) {
   const assumptions = notes.assumptions || [];
 
   return (
-    <div className="doc-wrap">
-      <div className="doc">
+    <div className="page-wrap">
+      <div className="page doc">
         {head}
-        <Grow className="title" value={notes.title || ""} onChange={set("title")} placeholder="untitled" />
+        <Grow className="title" value={notes.title || ""} onChange={set("title")} placeholder="Untitled" />
         <div className="byline">
-          <input className="date" value={notes.date || ""} placeholder="date"
+          <input className="date" value={notes.date || ""} placeholder="Date"
                  onChange={(e) => set("date")(e.target.value)} />
-          <span className="dim">with</span>
-          <input value={(notes.participants || []).join(", ")} placeholder="participants"
+          <span>with</span>
+          <input value={(notes.participants || []).join(", ")} placeholder="Participants"
                  onChange={(e) => set("participants")(e.target.value.split(",").map((s) => s.trimStart()))} />
         </div>
 
-        <Section label="summary">
-          <Grow value={notes.summary || ""} onChange={set("summary")} placeholder="what happened" />
+        <Section label="Summary">
+          <Grow value={notes.summary || ""} onChange={set("summary")} placeholder="What happened" />
         </Section>
 
-        <ListSection label="decisions" value={notes.decisions} onChange={set("decisions")} />
+        <ListSection label="Decisions" value={notes.decisions} onChange={set("decisions")} />
 
-        <Section label="action items" extra={
+        <Section label="Action items" extra={
           <button className="ghost" onClick={() => set("action_items")(
-            [...actions, { owner: "", task: "", deadline: null }])}>+ add</button>}>
+            [...actions, { owner: "", task: "", deadline: null }])}>+ Add</button>}>
           {actions.length ? (
             <div className="table">
               {actions.map((a, i) => (
                 <div className="tr" key={i}>
-                  <input className="owner" placeholder="who" value={a.owner || ""}
+                  <input className="owner" placeholder="Who" value={a.owner || ""}
                          onChange={(e) => setRow("action_items", i, { ...a, owner: e.target.value })} />
-                  <Grow placeholder="what" value={a.task || ""}
+                  <Grow placeholder="What" value={a.task || ""}
                         onChange={(v) => setRow("action_items", i, { ...a, task: v })} />
-                  <input className="due" placeholder="when" value={a.deadline || ""}
+                  <input className="due" placeholder="When" value={a.deadline || ""}
                          onChange={(e) => setRow("action_items", i, { ...a, deadline: e.target.value })} />
                   <button className="x" title="remove" onClick={() => drop("action_items", i)}>×</button>
                 </div>
               ))}
             </div>
-          ) : <p className="dim">none</p>}
+          ) : <p className="dim">None</p>}
         </Section>
 
-        <ListSection label="open questions" value={notes.open_questions} onChange={set("open_questions")} />
+        <ListSection label="Open questions" value={notes.open_questions} onChange={set("open_questions")} />
 
         {assumptions.length > 0 && (
-          <Section label={`assumptions · ${assumptions.length}`}>
+          <Section label={`Assumptions · ${assumptions.length}`}>
             <p className="hint">Not said outright. Check the quote before relying on it.</p>
             {assumptions.map((s, i) => (
               <div className="assumption" key={i}>
@@ -122,14 +122,14 @@ export default function Notes({ meeting, state, head, refresh, say }) {
 
       <footer className="sendbar">
         <label className="to">
-          <span>to</span>
+          <span>To</span>
           <input value={recipients} placeholder="name@company.com, …"
                  onChange={(e) => setRecipients(e.target.value)} />
         </label>
-        <button disabled={busy} onClick={save}>save</button>
+        <button disabled={busy} onClick={save}>Save</button>
         <button className="primary" disabled={busy} onClick={send}
                 title={meeting.status === "sent" ? "sent before — this sends it again" : ""}>
-          {state.mail_mode === "smtp" ? "send" : "draft in outlook"}
+          {state.mail_mode === "smtp" ? "Send" : "Draft in Outlook"}
         </button>
       </footer>
     </div>
@@ -151,7 +151,7 @@ function ListSection({ label, value, onChange }) {
   const [text, setText] = useState((value || []).join("\n"));
   return (
     <Section label={label}>
-      <Grow value={text} placeholder="one per line"
+      <Grow value={text} placeholder="One per line"
             onChange={(v) => { setText(v); onChange(lines(v)); }} />
     </Section>
   );

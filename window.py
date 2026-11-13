@@ -1,8 +1,8 @@
 """The app window: a native macOS window hosting the local UI.
 
 A WKWebView pointed at the loopback server. No browser — the page and the API
-both live inside this process. The page draws its own sky right up to the top
-edge: the title bar is transparent over it, and a thin native strip on top of
+both live inside this process. The page draws right up to the top edge: the
+title bar is transparent over it, and a thin native strip on top of
 the page is what drags the window, since a web view keeps its clicks.
 """
 import re
@@ -19,8 +19,8 @@ from WebKit import WKWebView, WKWebViewConfiguration
 
 WIDTH, HEIGHT = 1180, 780
 MIN_WIDTH, MIN_HEIGHT = 820, 520
-# The sky's navy, behind the page until it has drawn.
-NAVY = (0x0e / 255, 0x10 / 255, 0x30 / 255)
+# The sidebar's white, behind the page until it has drawn.
+PAPER = (0xf6 / 255, 0xf8 / 255, 0xfb / 255)
 TITLEBAR = 28                       # the page keeps this much free at the top
 
 
@@ -100,8 +100,8 @@ class AppWindow:
         self.window.setTitle_("Meeting Notes")
         self.window.setTitlebarAppearsTransparent_(True)
         self.window.setTitleVisibility_(NSWindowTitleHidden)
-        self.window.setAppearance_(NSAppearance.appearanceNamed_("NSAppearanceNameDarkAqua"))
-        self.window.setBackgroundColor_(NSColor.colorWithSRGBRed_green_blue_alpha_(*NAVY, 1))
+        self.window.setAppearance_(NSAppearance.appearanceNamed_("NSAppearanceNameAqua"))
+        self.window.setBackgroundColor_(NSColor.colorWithSRGBRed_green_blue_alpha_(*PAPER, 1))
         self.window.setMinSize_((MIN_WIDTH, MIN_HEIGHT))
         self.window.setFrameAutosaveName_("MeetingNotesWindow")
         # Keep the object alive after the red button — we reopen the same window.
@@ -111,7 +111,7 @@ class AppWindow:
         self.webview = DropWebView.alloc().initWithFrame_configuration_(
             self.window.contentView().bounds(), config)
         self.webview.on_files = self.on_files
-        # No white flash before the page has drawn its sky.
+        # No flash of another colour before the page has drawn.
         self.webview.setValue_forKey_(False, "drawsBackground")
         self.webview.setAutoresizingMask_(1 << 1 | 1 << 4)   # width | height
         content = self.window.contentView()

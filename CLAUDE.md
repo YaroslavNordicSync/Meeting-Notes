@@ -73,9 +73,9 @@ run from source; it uses the same data folder. Never `./build.sh --install` with
 
 The app is a full local app: the main window (meetings, notes editor, settings, job status)
 is the primary UI; the menu bar dropdown (native rumps menu) is the quick widget and keeps
-the app alive when the window is closed. The window's look: an ordered-dither cloud sky in
-navy / indigo / lavender / cream, under one pane of glass.
-Keep that palette and style.
+the app alive when the window is closed. The window's look: Granola-like and clean — a light
+sidebar (record, search, meetings by day) and a white page, one blue accent, light only.
+Keep that palette and style; show only what is useful.
 
 Where things stand:
 - `CHANGELOG.md` says what each version changed. Read the top entries before starting.

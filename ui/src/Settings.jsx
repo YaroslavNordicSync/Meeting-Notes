@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { api, lines, shortPath } from "./api.js";
 
-const MAIL_MODES = [["outlook_draft", "draft in outlook"], ["smtp", "send over smtp"]];
+const MAIL_MODES = [["outlook_draft", "Draft in Outlook"], ["smtp", "Send over SMTP"]];
 
 export default function Settings({ state, refresh, say }) {
   async function change(values, done) {
@@ -30,40 +30,40 @@ export default function Settings({ state, refresh, say }) {
   }
 
   return (
-    <div className="settings">
-      <h1>settings</h1>
+    <div className="page">
+      <h1>Settings</h1>
 
-      <Group title="inbox" hint="Where transcripts land: Teams, Zoom, Meet, Otter, subtitles or plain text. New ones are picked up by themselves.">
+      <Group title="Inbox" hint="Where transcripts land: Teams, Zoom, Meet, Otter, subtitles or plain text. New ones are picked up by themselves.">
         <div className="inline">
           <code className="path" title={state.folder}>{shortPath(state.folder)}</code>
-          <button onClick={chooseFolder}>change…</button>
+          <button onClick={chooseFolder}>Change…</button>
         </div>
         <label className="switch">
           <input type="checkbox" checked={state.watching}
                  onChange={(e) => change({ watching: e.target.checked })} />
           <span className="knob" />
-          watch the folder
+          Watch the folder
         </label>
         {state.skipped > 0 && (
           <div className="inline">
             <span className="hint">{state.skipped} {state.skipped === 1 ? "file was" : "files were"} not taken as transcripts</span>
-            <button onClick={recheck}>check again</button>
+            <button onClick={recheck}>Check again</button>
           </div>
         )}
       </Group>
 
-      <Group title="model" hint={state.ollama_installed
+      <Group title="Model" hint={state.ollama_installed
         ? "Writes the notes, locally through Ollama. Ollama runs only while there is a meeting to summarise, then gives the memory back."
         : "Ollama is not installed. Install it with: brew install ollama"}>
         <div className="inline">
           <code className="path">{state.model}</code>
           {state.model_ready
-            ? <span className="ok">downloaded</span>
-            : state.ollama_installed && <button onClick={downloadModel}>download · several GB</button>}
+            ? <span className="ok">Downloaded</span>
+            : state.ollama_installed && <button onClick={downloadModel}>Download · several GB</button>}
         </div>
       </Group>
 
-      <Group title="mail" hint="Outlook drafts wait in Outlook for you to send. SMTP sends straight away from the account below.">
+      <Group title="Mail" hint="Outlook drafts wait in Outlook for you to send. SMTP sends straight away from the account below.">
         <div className="segments">
           {MAIL_MODES.map(([mode, label]) => (
             <button key={mode} className={mode === state.mail_mode ? "on" : ""}
@@ -75,18 +75,18 @@ export default function Settings({ state, refresh, say }) {
 
       <Recipients state={state} change={change} />
 
-      <Group title="calls" hint="When Teams, Zoom or a browser starts using the microphone, offer to record the call: a notification, and a note above the record button. It never records by itself.">
+      <Group title="Calls" hint="When Teams, Zoom or a browser starts using the microphone, offer to record the call: a notification, and a note above the record button. It never records by itself.">
         <label className="switch">
           <input type="checkbox" checked={state.call_detect}
                  onChange={(e) => change({ call_detect: e.target.checked })} />
           <span className="knob" />
-          offer to record calls
+          Offer to record calls
         </label>
       </Group>
 
-      <Group title="archive" hint="A deleted meeting — its notes and its recording — waits in the archive this long, then goes for good. Until then it can be restored.">
+      <Group title="Deleted meetings" hint="A deleted meeting — its notes and its recording — is kept this long, then removed for good. Until then it can be restored.">
         <div className="segments">
-          {[[7, "a week"], [30, "a month"], [90, "3 months"]].map(([n, label]) => (
+          {[[7, "A week"], [30, "A month"], [90, "3 months"]].map(([n, label]) => (
             <button key={n} className={state.archive_days === n ? "on" : ""}
                     onClick={() => change({ archive_days: n })}>{label}</button>
           ))}
@@ -135,17 +135,17 @@ function Account({ state, refresh }) {
   return (
     <div className="fields">
       <label>
-        <span>account</span>
+        <span>Account</span>
         <input placeholder="you@gmail.com" value={address} onChange={(e) => setAddress(e.target.value)} />
       </label>
       <label>
-        <span>app password</span>
+        <span>App password</span>
         <input type="password" placeholder={state.account ? "saved in the keychain" : ""}
                value={secret} onChange={(e) => setSecret(e.target.value)} />
       </label>
       <div className="inline">
-        <button disabled={busy} onClick={save}>save account</button>
-        <button disabled={busy} onClick={test}>send test email</button>
+        <button disabled={busy} onClick={save}>Save account</button>
+        <button disabled={busy} onClick={test}>Send test email</button>
       </div>
       <p className="hint">Gmail app passwords: myaccount.google.com/apppasswords</p>
       {result && <pre className={`result ${result.ok ? "ok" : "bad"}`}>{result.text}</pre>}
@@ -156,11 +156,11 @@ function Account({ state, refresh }) {
 function Recipients({ state, change }) {
   const [text, setText] = useState(state.recipients.join("\n"));
   return (
-    <Group title="default recipients"
+    <Group title="Default recipients"
            hint={'Everyone here gets every set of notes. One per line: a bare address, or "Name <address>".'}>
       <textarea rows={4} value={text} onChange={(e) => setText(e.target.value)} />
       <div className="inline">
-        <button onClick={() => change({ recipients: lines(text) }, "Recipients saved")}>save</button>
+        <button onClick={() => change({ recipients: lines(text) }, "Recipients saved")}>Save</button>
       </div>
     </Group>
   );

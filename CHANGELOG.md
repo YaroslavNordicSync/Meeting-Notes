@@ -6,6 +6,18 @@ its commit message; open problems live in the project note, not here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follow the commit
 messages: `v0.MINOR.PATCH`, MINOR for a feature or substantial change, PATCH for a fix.
 
+## v0.14.0 — 2026-11-13
+### Changed
+- The window is redone white and blue, laid out like Granola: a sidebar with the record
+  button, search and the meetings grouped by day, and the selected meeting's notes as a
+  clean page, with its transcript as a second tab.
+- A meeting's state is a dot in the list: blue waits to be sent, red failed.
+- Settings, Deleted and + Import (files or a folder) sit at the foot of the sidebar; Deleted
+  is a page with Restore, Delete for good and Empty now on it.
+### Removed
+- The night-sky background, the status panel (a job line and a warning show only when
+  needed) and the filter chips above the list.
+
 ## v0.13.1 — 2026-11-13
 ### Added
 - An archived item can be deleted for good right away: *delete for good* in its ⋯ menu,

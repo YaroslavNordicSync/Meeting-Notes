@@ -178,15 +178,15 @@ chosen in a dialog the server opens itself. Settings go through the same
 
 ## The window
 
-The main window is the app: a sidebar (meetings, settings, *process files…* or
-*a whole folder…*,
-and the status — Ollama, model, watched folder, the job with a text progress
-bar), the meeting list with search and status filters, and the selected
-meeting's notes, editable, with *save* and *send*. Settings has the folder and
-the watch switch, the model, the mail mode and account, and the default
-recipients. The look is a night sky of cumulus, ordered-dithered into four inks, under one
-pane of glass;
-`prefers-reduced-motion` keeps it still.
+The main window is the app, laid out like Granola: a sidebar with the record
+button, search and the meetings grouped by day (a blue dot waits to be sent, a
+red one failed), and at its foot *Settings*, *Deleted* and *+ Import* (transcript
+files or a whole folder; dropping them on the window works too). A line there
+shows the job while one runs, and a warning only when Ollama or the model is
+missing. The page on the right is the selected meeting: its notes, editable,
+with *Save* and *Send*, and its transcript as a second tab. Settings has the
+folder and the watch switch, the model, the mail mode and account, and the
+default recipients. The look is white and blue, light only.
 
 The page source is in `ui/src`; `cd ui && npm run build` rebuilds it, and
 `build.sh` / `run.sh` do that for you.
@@ -270,10 +270,10 @@ transcribed again or deleted.
 ## Deleting
 
 *Delete* on a meeting moves its notes — and, for a recorded call, the whole
-recording — into `archive/` in the data folder. *archived* in the sidebar, under
-*meetings*, shows what is there and restores it. After a week, a month or three
-months (Settings ▸ archive, `ARCHIVE_DAYS`) it is removed for good — or at once:
-*delete for good* in an item's ⋯ menu, or *empty now* above the list. A downloaded
+recording — into `archive/` in the data folder. *Deleted* at the foot of the
+sidebar shows what is there and restores it. After a week, a month or three
+months (Settings ▸ Deleted meetings, `ARCHIVE_DAYS`) it is removed for good — or
+at once: *Delete for good* on an item, or *Empty now* at the top. A downloaded
 transcript is never moved or deleted; the history remembers it as deleted, so
 the watcher does not summarise it again.
 
