@@ -58,6 +58,7 @@ def state(app: controller.Controller) -> dict:
         "recording": facts["recording"],
         "call": facts["call"],
         "call_detect": facts["call_detect"],
+        "my_name": paths.setting("MY_NAME"),
         "recordings": app.lone_recordings(),
         "archive": archive.entries(),
         "archive_days": archive.days(),
@@ -300,12 +301,13 @@ class Handler(BaseHTTPRequestHandler):
 
     def _settings(self, body):
         """One or more of: watching, mail_mode, recipients, archive_days,
-        call_detect."""
+        call_detect, my_name."""
         setters = {"watching": lambda v: self.app.set_watching(bool(v)),
                    "mail_mode": self.app.set_mail_mode,
                    "recipients": self.app.set_recipients,
                    "archive_days": self.app.set_archive_days,
-                   "call_detect": lambda v: self.app.set_call_detect(bool(v))}
+                   "call_detect": lambda v: self.app.set_call_detect(bool(v)),
+                   "my_name": self.app.set_my_name}
         unknown = set(body) - set(setters)
         if unknown:
             raise KeyError(", ".join(sorted(unknown)))

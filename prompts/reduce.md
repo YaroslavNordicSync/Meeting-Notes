@@ -6,6 +6,9 @@ RULES
   with evidence_quote: the verbatim line the inference rests on. Guesses have no
   place in decisions or action_items.
 - confidence: low | medium | high — how strongly the quote supports the inference.
+- assumptions: at most three, and only inferences someone could act on wrongly.
+  Something the quote says outright is not an assumption: leave it out. No
+  assumptions at all is a good answer.
 - decisions: only what the participants actually settled on. A proposal that was
   turned down is not a decision.
 - action_items: every task someone was given or took on. A person saying they

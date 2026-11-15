@@ -133,6 +133,8 @@ def test_settings_change_through_the_controller(api, app, temp_env):
     assert paths.setting("MAIL_MODE") == "smtp"
     assert paths.setting("RECIPIENTS") == "a@x.com, B <b@x.com>"
     assert app.changes
+    assert api("POST", "/api/settings", {"my_name": "  Yaroslav   N "}) == (200, {"ok": True})
+    assert api("GET", "/api/state")[1]["my_name"] == "Yaroslav N"
 
     assert api("POST", "/api/settings", {"mail_mode": "pigeon"})[0] == 400
     assert api("POST", "/api/settings", {"OLLAMA_URL": "http://evil"})[0] == 400

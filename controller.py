@@ -239,6 +239,10 @@ class Controller:
         paths.save_setting("RECIPIENTS", ", ".join(entries))
         self._changed()
 
+    def set_my_name(self, name: str):
+        paths.save_setting("MY_NAME", " ".join(str(name).split()))
+        self._changed()
+
     def set_call_detect(self, on: bool):
         paths.save_setting("CALL_DETECT", "1" if on else "0")
         self.calls.stop()

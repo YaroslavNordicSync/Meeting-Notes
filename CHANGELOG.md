@@ -6,6 +6,16 @@ its commit message; open problems live in the project note, not here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follow the commit
 messages: `v0.MINOR.PATCH`, MINOR for a feature or substantial change, PATCH for a fix.
 
+## v0.17.0 — 2026-11-15
+### Changed
+- Decisions that only repeat an action item are dropped, so decisions hold what was
+  settled and tasks are listed once (on the sample meeting: 4 decisions → the 1 real one).
+- At most three assumptions, and none that only restates its own quote.
+- The email lists *Next steps* the Granola way — the task in bold, then owner and deadline —
+  instead of a table, and no longer sends the assumptions; they stay in the window.
+### Added
+- Settings › *Your name*: in a recorded call the notes name you instead of "Me".
+
 ## v0.16.1 — 2026-11-15
 ### Added
 - Every recording with Teams open keeps `teams-labels.json`: the labels in the Teams window

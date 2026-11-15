@@ -414,6 +414,37 @@ def topic_outline(notes: list) -> str:
     return "\n".join(lines)
 
 
+def stems(text: str) -> set:
+    """Words cut to five letters: enough to see "делает" and "сделать", or
+    "eskalerer" and "eskalere", as the same word in any of the three languages."""
+    return {w[:5] for w in re.findall(r"\w{4,}", text.lower())}
+
+
+def tidy(notes: dict, me: str = ""):
+    """What a 9b model gets wrong however the prompt puts it, put right in place:
+    a decision that repeats an action item ("Ivan hands load testing to Dima")
+    is dropped; an assumption that only restates its own quote is dropped, and
+    three at most are kept; "Me" becomes the user's name when it is known."""
+    tasks = [stems(" ".join(str(a.get(k) or "") for k in ("owner", "task", "deadline")))
+             for a in notes.get("action_items") or []]
+
+    def a_task(decision):
+        words = stems(decision)
+        return bool(words) and any(len(words & t) / len(words) >= 0.5 for t in tasks)
+    notes["decisions"] = [d for d in notes.get("decisions") or [] if not a_task(d)]
+
+    def inferred(a):
+        words = stems(a.get("statement", ""))
+        return words and len(words & stems(a.get("evidence_quote", ""))) / len(words) < 0.6
+    notes["assumptions"] = [a for a in notes.get("assumptions") or [] if inferred(a)][:3]
+
+    if me:
+        for a in notes.get("action_items") or []:
+            if (a.get("owner") or "").strip() == "Me":
+                a["owner"] = me
+        notes["participants"] = [me if p == "Me" else p for p in notes.get("participants") or []]
+
+
 def summarize(turns, meta: dict, model: str = None, progress_cb=None) -> dict:
     """Turns -> the notes: NOTES_SCHEMA's fields, and `summary` in markdown."""
     from parser import UNKNOWN, speakers, to_text
@@ -424,9 +455,11 @@ def summarize(turns, meta: dict, model: str = None, progress_cb=None) -> dict:
     who = (", ".join(named) if meta.get("named", True) else
            "not named in this transcript. An owner is only a name spoken in the "
            "text; when nobody is named for a task, leave the owner empty.")
+    me = paths.setting("MY_NAME").strip()
     if any(re.fullmatch(r"Speaker \d+|Them", s) for s in named):
         # A recorded call: "Me" is the user, the others are voices without names.
-        who += (". \"Me\" is the person recording the call. \"Speaker N\" and \"Them\" are "
+        who += (". \"Me\" is " + (f"{me}, " if me else "") +
+                "the person recording the call. \"Speaker N\" and \"Them\" are "
                 "the other people, unnamed: when the conversation shows who one of them is "
                 "(someone is called by name), use that name and add an assumption with the "
                 "quote; otherwise keep the label.")
@@ -466,6 +499,7 @@ def summarize(turns, meta: dict, model: str = None, progress_cb=None) -> dict:
             _prompt("summary", META=meta_line, TOPICS=topic_outline(notes), TRANSCRIPT="",
                     **size), model)
 
+    tidy(result, me)
     if not result.get("participants"):
         result["participants"] = named
     if not result.get("date"):

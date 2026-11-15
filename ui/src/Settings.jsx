@@ -75,6 +75,8 @@ export default function Settings({ state, refresh, say }) {
 
       <Recipients state={state} change={change} />
 
+      <MyName state={state} change={change} />
+
       <Group title="Calls" hint="When Teams, Zoom or a browser starts using the microphone, offer to record the call: a notification, and a note above the record button. It never records by itself.">
         <label className="switch">
           <input type="checkbox" checked={state.call_detect}
@@ -150,6 +152,21 @@ function Account({ state, refresh }) {
       <p className="hint">Gmail app passwords: myaccount.google.com/apppasswords</p>
       {result && <pre className={`result ${result.ok ? "ok" : "bad"}`}>{result.text}</pre>}
     </div>
+  );
+}
+
+// Who "Me" is in a recorded call, so the notes say "Anna will send it", not "Me".
+function MyName({ state, change }) {
+  const [name, setName] = useState(state.my_name || "");
+  return (
+    <Group title="Your name" hint={'In a recorded call you are "Me". With your name here, the notes and the email name you instead — as the owner of a task, among the participants.'}>
+      <div className="inline">
+        <input value={name} placeholder="Your name" style={{ maxWidth: 280 }}
+               onChange={(e) => setName(e.target.value)}
+               onKeyDown={(e) => e.key === "Enter" && change({ my_name: name }, "Name saved")} />
+        <button onClick={() => change({ my_name: name }, "Name saved")}>Save</button>
+      </div>
+    </Group>
   );
 }
 

@@ -440,7 +440,9 @@ new format.
    map-reduce: ~5000-token chunks cut strictly on turn boundaries with a one-to-
    two-turn overlap. Invalid JSON gets one retry at `temperature=0`, and then
    the meeting is marked `failed` in the history, with the error in its row.
-3. **The email** (`mailer.py`) — Jinja2 over `templates/email.html`.
+3. **The email** (`mailer.py`) — Jinja2 over `templates/email.html`: the
+   summary, decisions, *Next steps* (each task in bold, then its owner and the
+   deadline as it was said) and open questions. Assumptions are not sent.
    `MAIL_MODE=outlook_draft` creates a draft in Outlook for Mac through
    `osascript` and does not send it; `MAIL_MODE=smtp` sends through SMTP with an
    app password (see *The mail account*). Recipients: `RECIPIENTS` from `.env` and whatever is typed in the window. Both
@@ -470,7 +472,15 @@ almost impossible to spot, because it reads exactly like a real fact.
 So `summary`, `decisions` and `action_items` may only contain what was said out
 loud, and everything the model worked out for itself goes into `assumptions`,
 each with the `evidence_quote` it rests on and a `confidence` level. Reading the
-notes, you read the first part as fact and the assumptions as a to-check list.
+notes, you read the first part as fact and the assumptions as a to-check list —
+which is why they stay in the window and are not sent.
+
+A 9b model breaks some of these rules however the prompt puts them, so
+`llm.tidy` puts them right after it answers: a decision that repeats an action
+item is dropped (word stems compared, so "делает" and "сделать" match), an
+assumption that only restates its own quote is dropped and three at most are
+kept, and in a recorded call "Me" becomes your name (Settings › *Your name*,
+`MY_NAME`).
 
 ### Notes schema
 

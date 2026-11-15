@@ -56,6 +56,8 @@ DEFAULTS = {
     "CALL_DETECT": "1",
     # deleted meetings stay in the archive this many days: 7, 30 or 90
     "ARCHIVE_DAYS": 30,
+    # who "Me" is in a recorded call, for the notes ("" keeps "Me")
+    "MY_NAME": "",
     # mail
     "MAIL_MODE": "outlook_draft", "RECIPIENTS": "", "SMTP_USER": "",
     "SMTP_HOST": "", "SMTP_PORT": 465, "SMTP_FROM": "",

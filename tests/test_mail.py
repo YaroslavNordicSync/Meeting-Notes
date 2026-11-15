@@ -250,3 +250,15 @@ def test_the_summary_goes_into_the_email_formatted_and_nothing_in_it_runs():
     # Notes written before summaries were markdown: their prose is one paragraph.
     _, html = mailer.render({"title": "Old", "summary": "We met. We agreed."})
     assert '<p style="margin:0 0 12px;">We met. We agreed.</p>' in html
+
+
+def test_next_steps_go_out_as_a_list_and_assumptions_stay_home():
+    steps = [{"owner": "Anna", "task": "Send the deck", "deadline": "Friday"},
+             {"owner": "", "task": "Book a room", "deadline": None}]
+    guess = [{"statement": "Budget is fixed", "confidence": "low", "evidence_quote": "probably"}]
+    _, html = mailer.render({"title": "Sync", "summary": "", "action_items": steps,
+                             "assumptions": guess})
+    assert "Next steps" in html and "<table" not in html
+    assert "<strong>Send the deck</strong>" in html and "— Anna, Friday" in html
+    assert "<strong>Book a room</strong></li>" in html
+    assert "Budget is fixed" not in html

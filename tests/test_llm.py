@@ -163,3 +163,33 @@ def test_the_summary_is_written_in_its_own_call_from_the_transcript_or_the_topic
     assert out["summary"] == "## Pricing\n- too cheap"
     assert "PART 1\n- Pricing\n  - too cheap" in sent[-1]["prompt"]
     assert "We talk about pricing" not in sent[-1]["prompt"]
+
+
+def test_a_decision_that_is_a_task_goes_and_an_assumption_that_is_a_quote_too():
+    notes = {
+        "decisions": ["Release moves to 8 October", "Ivan hands load testing to Dima on Thursday"],
+        "action_items": [{"owner": "Ivan", "task": "hand load testing to Dima",
+                          "deadline": "Thursday"},
+                         {"owner": "Me", "task": "send the contract", "deadline": None}],
+        "assumptions": [
+            {"statement": "Dima takes over load testing", "confidence": "high",
+             "evidence_quote": "I'll talk to Dima and he takes over load testing"},
+            *[{"statement": f"Guess {i} about the budget", "confidence": "low",
+               "evidence_quote": "we'll see"} for i in range(5)]],
+        "participants": ["Ivan", "Me"],
+    }
+    llm.tidy(notes, me="Yaroslav")
+    assert notes["decisions"] == ["Release moves to 8 October"]
+    assert [a["statement"] for a in notes["assumptions"]] == [
+        "Guess 0 about the budget", "Guess 1 about the budget", "Guess 2 about the budget"]
+    assert notes["action_items"][1]["owner"] == "Yaroslav"
+    assert notes["participants"] == ["Ivan", "Yaroslav"]
+
+
+def test_the_model_is_told_who_me_is(monkeypatch):
+    prompts = []
+    monkeypatch.setattr(llm, "generate_json", lambda p, s, m: prompts.append(p) or {"title": "t"})
+    monkeypatch.setattr(llm, "generate_text", lambda p, m: "")
+    monkeypatch.setenv("MY_NAME", "Yaroslav")
+    llm.summarize([("Me", "hi"), ("Speaker 1", "hello")], {"source": "Call.vtt"}, model="m")
+    assert '"Me" is Yaroslav, the person recording the call' in prompts[0]

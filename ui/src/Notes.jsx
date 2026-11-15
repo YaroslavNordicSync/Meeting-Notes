@@ -83,7 +83,7 @@ export default function Notes({ meeting, state, head, refresh, say }) {
 
         <ListSection label="Decisions" value={notes.decisions} onChange={set("decisions")} />
 
-        <Section label="Action items" extra={
+        <Section label="Next steps" extra={
           <button className="ghost" onClick={() => set("action_items")(
             [...actions, { owner: "", task: "", deadline: null }])}>+ Add</button>}>
           {actions.length ? (
