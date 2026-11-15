@@ -125,6 +125,7 @@ class Ollama:
 
     def __init__(self):
         self.proc = None
+        self.closed = False
         self._lock = threading.Lock()
 
     def ensure(self, timeout: float = 60) -> bool:
@@ -135,6 +136,8 @@ class Ollama:
         if not exe:
             return False
         with self._lock:
+            if self.closed:
+                return False
             if self.proc is None or self.proc.poll() is not None:
                 log.info("Starting Ollama")
                 # The last run only: what matters is why it stopped or would not start.
@@ -168,6 +171,14 @@ class Ollama:
                           timeout=30)
         except requests.RequestException:
             pass                    # not running: nothing is loaded
+
+
+    def close(self):
+        """The app is quitting: stop it, and start nothing after this — a job cut
+        off mid-request would otherwise wake a new Ollama that outlives the app."""
+        with self._lock:
+            self.closed = True
+        self.release()
 
 
 OLLAMA = Ollama()

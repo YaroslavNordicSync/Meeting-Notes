@@ -39,6 +39,9 @@ class FakeOllama:
     def release(self):
         self.released += 1
 
+    def close(self):
+        self.release()
+
 
 @pytest.fixture(autouse=True)
 def ollama(monkeypatch):

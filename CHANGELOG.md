@@ -6,6 +6,12 @@ its commit message; open problems live in the project note, not here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follow the commit
 messages: `v0.MINOR.PATCH`, MINOR for a feature or substantial change, PATCH for a fix.
 
+## v0.14.3 — 2026-11-15
+### Fixed
+- Quitting while notes were being written left an Ollama running on its own, and the
+  Dock kept showing Meeting Notes as "Running in Background". Once the app quits, Ollama
+  is stopped and nothing can start it again.
+
 ## v0.14.2 — 2026-11-13
 ### Fixed
 - Plugging in headphones or connecting AirPods during a call no longer stops your side

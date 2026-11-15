@@ -81,6 +81,32 @@ def test_an_ollama_the_app_started_is_stopped_again(tmp_path, monkeypatch):
     assert posted == []                 # stopping it unloads everything anyway
 
 
+def test_once_the_app_quits_a_cut_off_job_cannot_wake_a_new_ollama(tmp_path, monkeypatch):
+    import subprocess
+    import paths
+    monkeypatch.setattr(paths, "DATA", tmp_path)
+    fake = tmp_path / "ollama"
+    fake.write_text("#!/bin/sh\nexec sleep 60\n")
+    fake.chmod(0o755)
+    monkeypatch.setattr(llm, "ollama_binary", lambda: str(fake))
+    started = []
+    real_popen = subprocess.Popen
+    monkeypatch.setattr(llm.subprocess, "Popen",
+                        lambda *a, **kw: started.append(a[0]) or real_popen(*a, **kw))
+    own = llm.Ollama()
+    # Up only while the process it started is alive, as with the real one.
+    monkeypatch.setattr(llm, "ollama_up", lambda: bool(own.proc) and own.proc.poll() is None)
+    assert own.ensure(timeout=5)
+    proc = own.proc
+
+    own.close()
+    # The job whose request the quit cut off asks for Ollama again.
+    assert not own.ensure(timeout=1)
+
+    assert proc.poll() is not None
+    assert len(started) == 1, "a new Ollama was started after the app quit"
+
+
 def test_someone_elses_ollama_keeps_running_and_only_the_model_goes(monkeypatch):
     monkeypatch.setattr(llm, "ollama_up", lambda: True)
     posted = []

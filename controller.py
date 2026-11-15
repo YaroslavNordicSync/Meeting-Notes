@@ -164,7 +164,7 @@ class Controller:
             if self.watcher:
                 self.watcher.stop()
                 self.watcher = None
-        llm.OLLAMA.release()
+        llm.OLLAMA.close()
 
     # ------------------------------------------------------------ watcher
 
