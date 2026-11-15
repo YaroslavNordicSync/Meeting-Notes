@@ -6,6 +6,13 @@ its commit message; open problems live in the project note, not here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follow the commit
 messages: `v0.MINOR.PATCH`, MINOR for a feature or substantial change, PATCH for a fix.
 
+## v0.15.2 — 2026-11-15
+### Fixed
+- Notifications show again: they go through macOS's current notification API instead
+  of the deprecated one, which today's macOS drops without a word. The offer to record a
+  call, and to stop when it seems over, finally reaches you, with Record / Not now and
+  Stop / Keep going buttons. The first start asks whether the app may notify.
+
 ## v0.15.1 — 2026-11-15
 ### Fixed
 - A call cut off before its transcript was written — the app quit, crashed or was

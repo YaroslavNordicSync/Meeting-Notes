@@ -7,7 +7,6 @@ meetings, the settings — and keeps the app running when the window is closed.
 Both act through one `Controller`.
 """
 import json
-import subprocess
 import threading
 from pathlib import Path
 
@@ -17,6 +16,7 @@ from PyObjCTools import AppHelper
 import mailer
 import main
 import menu
+import notifications
 import paths
 import pipeline
 from controller import Controller, ask_for_files, ask_for_folder
@@ -76,14 +76,13 @@ def mail_account_sheet(address: str, secret: str, status: str = "") -> tuple:
     return clicked, str(email.stringValue()), str(field.stringValue())
 
 
+# Set up by the app once it runs; see notifications.py for why not rumps'.
+NOTIFIER = None
+
+
 def notify(title: str, message: str):
-    try:
-        rumps.notification(title, "", message)
-    except Exception:  # unbundled runs have no bundle id for notifications
-        # The text goes in as arguments, so no quote in a file name can break it.
-        subprocess.run(["osascript", "-e", "on run argv",
-                        "-e", "display notification (item 2 of argv) with title (item 1 of argv)",
-                        "-e", "end run", title, message], capture_output=True)
+    if NOTIFIER:
+        NOTIFIER.post(title, message)
 
 
 class TranscriptApp(rumps.App):
@@ -95,7 +94,10 @@ class TranscriptApp(rumps.App):
         self.app.on_change = lambda: on_main(self.changed)
         self.app.on_notice = lambda title, message: on_main(notify, title, message)
         self.app.on_offer = lambda offer, app: on_main(self.offer, offer, app)
-        rumps.notifications(self.notification_clicked)
+        global NOTIFIER
+        NOTIFIER = notifications.Notifier(
+            lambda kind, action: on_main(self.notification_action, kind, action))
+        NOTIFIER.start()
         pipeline.WORKER.on_event = self.on_job_event
 
         import server
@@ -185,26 +187,26 @@ class TranscriptApp(rumps.App):
 
     # ------------------------------------------------------------ a call noticed
 
-    OFFERS = {"record": ("{app} is using the microphone", "Record the call?", "Record"),
-              "stop": ("The {app} call seems over", "Stop recording?", "Stop")}
+    OFFERS = {"record": ("{app} is using the microphone", "Record the call?"),
+              "stop": ("The {app} call seems over", "Stop recording?")}
 
     def offer(self, offer, app):
-        """A notification with a button. Main thread only."""
-        title, message, button = self.OFFERS[offer]
-        try:
-            rumps.notification(title.format(app=app), "", message, data={"offer": offer},
-                               action_button=button, other_button="Not now")
-        except Exception:               # unbundled: no buttons, the window still offers
-            notify(title.format(app=app), message)
+        """A notification with the offer's buttons. Main thread only."""
+        title, message = self.OFFERS[offer]
+        NOTIFIER.post(title.format(app=app), message, kind=offer)
 
-    def notification_clicked(self, notification):
-        """The button records or stops, if that is still what is on offer; a click
-        anywhere else opens the window, whose banner says the same."""
-        offer = (notification.data or {}).get("offer")
-        if notification.activation_type != "action_button_clicked":
+    def notification_action(self, kind, action):
+        """Record or Stop does it, if that is still what is on offer; Not now and
+        Keep going drop the offer; a click on the notification opens the window,
+        which shows the same offer. Main thread."""
+        if action == notifications.OPEN:
             self.window.show()
-        elif offer and offer == self.app.call["offer"]:
+        elif not kind or kind != self.app.call["offer"]:
+            return                          # a plain notice, or an offer since gone
+        elif action == kind:                # "record" or "stop"
             self.toggle_recording(None)
+        else:
+            self.app.dismiss_call()
 
     # ------------------------------------------------------------ actions
 

@@ -23,8 +23,8 @@ OPTIONS = {
         "CFBundleDisplayName": "Meeting Notes",
         "CFBundleIdentifier": "local.meetingnotes.app",
         # The version of the commit it was built from: v0.MINOR.PATCH.
-        "CFBundleShortVersionString": "0.15.1",
-        "CFBundleVersion": "0.15.1",
+        "CFBundleShortVersionString": "0.15.2",
+        "CFBundleVersion": "0.15.2",
         "LSMinimumSystemVersion": "12.0",
         "NSHighResolutionCapable": True,
         # The UI is served from 127.0.0.1, which needs an ATS exception.
@@ -40,8 +40,9 @@ OPTIONS = {
     # Traced automatically, but these are imported lazily or by name.
     "includes": ["paths", "parser", "llm", "mailer", "main", "pipeline", "watcher",
                  "controller", "recorder", "transcriber", "archive", "speakers", "calls",
-                 "server", "window", "history", "menu",
-                 "WebKit", "AppKit", "Foundation", "objc", "PyObjCTools.AppHelper",
+                 "server", "window", "history", "menu", "notifications",
+                 "WebKit", "AppKit", "Foundation", "UserNotifications", "objc",
+                 "PyObjCTools.AppHelper",
                  # jaraco is a namespace package, so py2app cannot take it whole.
                  "jaraco.classes.properties", "jaraco.context", "jaraco.functools"],
     "packages": ["rumps", "watchdog", "jinja2", "dotenv", "docx", "requests",

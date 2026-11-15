@@ -265,6 +265,13 @@ lets go of the microphone while recording, it offers to stop. Both are only offe
 nothing records or stops without your click. Settings → *calls* turns this off.
 A browser counts whatever it uses the microphone for, not only calls.
 
+The offers come with buttons — *Record* / *Not now*, *Stop* / *Keep going* — and
+are posted through macOS's current notification API (`notifications.py`); the
+older one rumps uses is silently dropped by today's macOS. The first start asks
+whether Meeting Notes may send notifications; if that was refused, turn them on
+in System Settings › Notifications › Meeting Notes. Run from source, it falls
+back to plain notifications without buttons.
+
 **Transcribe again** runs the speech model over a call's whole recording, for
 when the live transcript missed things; the meeting is then summarised again. A
 recording in which nothing was recognised still shows in the list, so it can be
