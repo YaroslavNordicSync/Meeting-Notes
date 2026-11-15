@@ -6,6 +6,12 @@ its commit message; open problems live in the project note, not here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follow the commit
 messages: `v0.MINOR.PATCH`, MINOR for a feature or substantial change, PATCH for a fix.
 
+## v0.16.1 — 2026-11-15
+### Added
+- Every recording with Teams open keeps `teams-labels.json`: the labels in the Teams window
+  that kept appearing and disappearing (as a "speaking" sign does), names masked as P1, P2…
+  It shows what Teams' own labels look like, so names can be read from them.
+
 ## v0.16.0 — 2026-11-15
 ### Added
 - On speakers, the others' voices are taken out of your microphone before the call is

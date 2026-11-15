@@ -259,6 +259,12 @@ be the open tab of its window (the window can be behind others): a browser shows
 nothing of its other tabs. `logs/pipeline.log` says how much of the page each
 call could read. No screenshots are taken.
 
+Which label Teams uses for "is speaking" is not documented, and the first guess
+did not match. So every recording also keeps `teams-labels.json`: the labels
+that kept appearing and disappearing during the call, most frequent first, with
+every capitalised word that is not a plain UI word masked as P1, P2, … — the
+sample the pattern is written from.
+
 Above a meeting's transcript, *who is who* gives each voice a name; the name replaces the label in the notes as
 well, without running the model again. The model itself is told the speakers are
 unnamed and uses a name only when the conversation gives one, as an assumption.

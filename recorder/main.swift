@@ -31,6 +31,10 @@
 //   {"event":"speaking","t":12.5,"labels":["Anna Petrova, speaking"]}
 //   {"event":"looking","app":"com.google.Chrome","elements":3120,"seconds":0.21}
 //   {"event":"speaking","t":0,"labels":[],"unavailable":"no accessibility permission"}
+// Every label it reads that keeps appearing and disappearing — what a "who is
+// speaking" sign does — is counted, and at the end <folder>/teams-labels.json
+// holds the most frequent, names masked (P1, P2, …): the sample that shows what
+// Teams' own labels look like, so the pattern can be written from it.
 //
 //   mn-recorder --watch
 //
@@ -411,19 +415,77 @@ func axAttribute(_ element: AXUIElement, _ name: String) -> AnyObject? {
 }
 
 func collectLabels(_ element: AXUIElement, _ pattern: NSRegularExpression,
-                   _ found: inout Set<String>, _ budget: inout Int) {
+                   _ found: inout Set<String>, _ seen: inout Set<String>, _ budget: inout Int) {
     budget -= 1
     if budget < 0 { return }
+    let role = (axAttribute(element, "AXRole") as? String) ?? "?"
     for name in ["AXTitle", "AXDescription", "AXValue"] {
-        if let label = axAttribute(element, name) as? String, !label.isEmpty, label.count < 200,
-           pattern.firstMatch(in: label, range: NSRange(label.startIndex..., in: label)) != nil {
-            found.insert(label)
+        if let label = axAttribute(element, name) as? String, !label.isEmpty, label.count < 200 {
+            seen.insert("\(role) \(name): \(label)")
+            if pattern.firstMatch(in: label, range: NSRange(label.startIndex..., in: label)) != nil {
+                found.insert(label)
+            }
         }
     }
     for child in (axAttribute(element, "AXChildren") as? [AXUIElement]) ?? [] {
-        collectLabels(child, pattern, &found, &budget)
+        collectLabels(child, pattern, &found, &seen, &budget)
     }
 }
+
+// ------------------------------------------------------------------ the label sample
+
+/// Words a label is made of that are not names; every other capitalised word is
+/// masked. English, Norwegian and Russian, as Teams is used in those.
+let PLAIN: Set<String> = ["speaking", "talking", "muted", "unmuted", "mute", "unmute", "camera",
+    "mic", "microphone", "video", "audio", "on", "off", "is", "has", "hand", "raised", "raise",
+    "share", "sharing", "screen", "leave", "chat", "people", "participants", "more", "you", "me",
+    "organizer", "guest", "external", "presenter", "attendee", "unverified", "pinned",
+    "spotlight", "spotlighted", "microsoft", "teams", "meeting", "call", "in", "the", "and", "a",
+    "tile", "avatar", "profile", "picture", "of", "for", "button", "status", "available", "busy",
+    "away", "reactions", "react", "join", "joined", "left", "snakker", "dempet", "kamera",
+    "говорит", "микрофон", "выключен", "включен"]
+
+final class LabelSample {
+    private let lock = NSLock()
+    private var toggles = [String: Int]()
+    private var last: Set<String>? = nil
+
+    func look(_ seen: Set<String>) {
+        lock.lock(); defer { lock.unlock() }
+        if let last { for label in seen.symmetricDifference(last) { toggles[label, default: 0] += 1 } }
+        last = seen
+    }
+
+    /// The labels that came and went at least four times, most often first, masked.
+    func write(to url: URL) {
+        lock.lock(); let counts = toggles; lock.unlock()
+        let top = counts.filter { $0.value >= 4 }.sorted { $0.value > $1.value }.prefix(60)
+        if top.isEmpty { return }
+        var masks = [String: String]()
+        func mask(_ text: String) -> String {
+            text.split(separator: " ", omittingEmptySubsequences: false).map { raw -> String in
+                let word = String(raw)
+                let core = word.trimmingCharacters(in: .punctuationCharacters)
+                guard let first = core.first, first.isUppercase, !PLAIN.contains(core.lowercased())
+                else { return word }
+                let token = masks[core] ?? "P\(masks.count + 1)"
+                masks[core] = token
+                return word.replacingOccurrences(of: core, with: token)
+            }.joined(separator: " ")
+        }
+        // "AXGroup AXDescription: Anna, speaking": the element and attribute stay
+        // readable, only the label is masked.
+        let rows = top.map { row -> [String: Any] in
+            let parts = row.key.split(separator: ":", maxSplits: 1).map(String.init)
+            let label = parts.count == 2 ? "\(parts[0]):\(mask(parts[1]))" : mask(row.key)
+            return ["times": row.value, "label": label]
+        }
+        if let data = try? JSONSerialization.data(withJSONObject: rows, options: [.prettyPrinted]) {
+            try? data.write(to: url)
+        }
+    }
+}
+let labelSample = LabelSample()
 
 func watchSpeakers(_ pattern: NSRegularExpression, since began: Date) {
     Thread {
@@ -435,7 +497,7 @@ func watchSpeakers(_ pattern: NSRegularExpression, since began: Date) {
         }
         var last = Set<String>(), looks = [pid_t: Int]()
         while true {
-            var found = Set<String>()
+            var found = Set<String>(), seen = Set<String>()
             for app in NSWorkspace.shared.runningApplications {
                 guard let id = app.bundleIdentifier,
                       TEAMS_APPS.contains(id) || BROWSERS.contains(id) else { continue }
@@ -455,13 +517,14 @@ func watchSpeakers(_ pattern: NSRegularExpression, since began: Date) {
                 let start = Date()
                 var budget = LARGEST_TREE
                 for window in windows {
-                    collectLabels(window, pattern, &found, &budget)
+                    collectLabels(window, pattern, &found, &seen, &budget)
                 }
                 if n == 10 {
                     say(["event": "looking", "app": id, "elements": LARGEST_TREE - max(budget, 0),
                          "seconds": Date().timeIntervalSince(start)])
                 }
             }
+            labelSample.look(seen)
             if found != last {
                 say(["event": "speaking", "t": Date().timeIntervalSince(began),
                      "labels": found.sorted()])
@@ -513,6 +576,7 @@ func finish() {
     finished = true
     system.stop()
     mic.stop()
+    labelSample.write(to: folder.appendingPathComponent("teams-labels.json"))
     say(["event": "stopped", "seconds": Date().timeIntervalSince(began)])
     exit(0)
 }
