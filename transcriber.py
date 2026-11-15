@@ -31,6 +31,7 @@ from pathlib import Path
 
 import requests
 
+import echo
 import paths
 
 log = logging.getLogger("pipeline")
@@ -325,7 +326,16 @@ class WhisperServer:
     def transcribe(self, samples: array, usual: str = "") -> Heard:
         """`usual`: the language this side has been speaking, or "" at first."""
         fixed = paths.setting("WHISPER_LANGUAGE") or "auto"
-        heard = self._ask(samples, fixed)
+        try:
+            heard = self._ask(samples, fixed)
+        except requests.ConnectionError:
+            # whisper.cpp dies on a piece in which its voice detection finds no
+            # speech ("unknown language id -2"): that piece is silence, and the
+            # server is started again for the next one.
+            log.warning("The speech model stopped on a piece without speech; restarting it")
+            self.stop()
+            self.start()
+            return Heard("", usual)
         language = heard.get("language") or ""
         if (fixed == "auto" and usual and language != usual
                 and (heard.get("detected_language_probability") or 0) < self.SURE):
@@ -460,11 +470,18 @@ class Live:
     # -------------------------------------------------- internals
 
     def _final(self) -> list:
-        """Both streams from start to end, chunk by chunk; my lines that are
-        their words heard again through the microphone are dropped."""
+        """Both streams from start to end, chunk by chunk, after the echo is
+        taken out of the microphone (echo.py); my lines that are still their
+        words heard again are dropped."""
+        audio = {who: WavTail(tail.path).read() for who, (tail, _) in self.streams.items()}
+        if audio["me"] and audio["them"]:
+            self._set(status="taking the echo out of the microphone")
+            try:
+                audio["me"] = echo.cancel(audio["me"], audio["them"])
+            except Exception as e:      # the microphone as it was is still usable
+                log.error("Could not take the echo out of %s: %s", self.folder.name, e)
         streams = []
-        for who, (tail, _) in self.streams.items():
-            samples = WavTail(tail.path).read()
+        for who, samples in audio.items():
             segmenter = Segmenter()
             streams.append((who, samples, chunks(segmenter.feed(samples) + segmenter.flush())))
         total, done, lines = sum(len(c) for _, _, c in streams), 0, []

@@ -6,6 +6,16 @@ its commit message; open problems live in the project note, not here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follow the commit
 messages: `v0.MINOR.PATCH`, MINOR for a feature or substantial change, PATCH for a fix.
 
+## v0.16.0 — 2026-11-15
+### Added
+- On speakers, the others' voices are taken out of your microphone before the call is
+  transcribed after it ends (WebRTC's echo canceller, with the system audio as reference),
+  so their words no longer come back as yours. On five real calls the echo lines went from
+  20–48 per call to 0–3. mic.wav itself is never changed; the live preview is as before.
+### Fixed
+- A piece of audio with no speech in it could crash the speech model and throw away the
+  whole after-call transcription; that piece now counts as silence and the model restarts.
+
 ## v0.15.2 — 2026-11-15
 ### Fixed
 - Notifications show again: they go through macOS's current notification API instead

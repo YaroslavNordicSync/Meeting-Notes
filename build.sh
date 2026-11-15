@@ -77,6 +77,16 @@ APP="$DIST/Meeting Notes.app"
 # macOS asks about the microphone and the system audio, not the helper.
 cp build/mn-recorder "$APP/Contents/MacOS/mn-recorder"
 
+# The echo canceller (livekit, its native library next to its files) and the
+# protobuf it speaks are namespace packages, which py2app cannot take: copied
+# in whole, before signing.
+SITE=$("$PY" -c "import sysconfig; print(sysconfig.get_paths()['purelib'])")
+LIB="$APP/Contents/Resources/lib/python3.11"
+for pkg in livekit google; do
+  rm -rf "$LIB/$pkg"
+  cp -R "$SITE/$pkg" "$LIB/$pkg"
+done
+
 if has_identity; then SIGN="$IDENTITY"; else SIGN=-; fi
 say "Signing ($([ "$SIGN" = - ] && echo "ad-hoc; ./build.sh --make-identity keeps permissions across builds" || echo "$SIGN"))"
 # An unsigned app loses its Keychain and Outlook permissions, so a failure here

@@ -305,3 +305,19 @@ def test_a_failed_second_pass_keeps_the_preview(tmp_path):
     vtt = live.finish()
 
     assert tparser.parse(vtt).turns == [("Them", "We ship Friday.")]
+
+
+def test_a_piece_that_crashes_the_speech_model_is_silence_and_the_model_restarts(monkeypatch):
+    server = transcriber.WhisperServer()
+    calls = []
+    monkeypatch.setattr(server, "stop", lambda: calls.append("stop"))
+    monkeypatch.setattr(server, "start", lambda: calls.append("start"))
+
+    def crash(samples, language):
+        raise transcriber.requests.ConnectionError("Remote end closed connection")
+    monkeypatch.setattr(server, "_ask", crash)
+
+    heard = server.transcribe(array("h", [0] * 1600), usual="english")
+
+    assert heard == Heard("", "english")
+    assert calls == ["stop", "start"]

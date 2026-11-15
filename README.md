@@ -213,10 +213,15 @@ side said, a few seconds behind. The app reads both files as they grow, cuts
 them at the pauses and sends each piece to a local whisper.cpp server
 (`brew install whisper-cpp`); the model, large-v3-turbo (~570 MB), is downloaded
 into `models/` in the data folder the first time. Without headphones the
-others' voices leak from the speakers into your microphone; a line of yours that
-repeats theirs from the same moment is dropped as that echo. (Apple's own voice
-processing is not used: it starved the system audio tap.) Headphones still give
-the cleanest result.
+others' voices leak from the speakers into your microphone. Before the pass after
+the call, `echo.py` takes them out: the two files are lined up (the microphone's
+file can run up to tens of ms ahead of the system audio or behind it), and
+WebRTC's echo canceller, through LiveKit's build, subtracts the system audio
+from the microphone — so what you say over them is kept. A line of yours that
+still repeats theirs from the same moment is dropped as echo. mic.wav is never
+changed, and if cancelling fails the microphone is used as it was. (Apple's own
+voice processing is not used during the call: it starved the system audio tap.)
+The live preview still shows the echo; the kept transcript does not.
 
 **After the call** the whole recording is transcribed again in one pass, which
 is what you keep: the live lines are only a preview. Both files are cut into
