@@ -10,7 +10,7 @@
     {{ date }}{% if participants %} &middot; {{ participants|join(', ') }}{% endif %}
   </p>
 
-  <p style="margin:0 0 24px;">{{ summary }}</p>
+  <div style="margin:0 0 24px;">{{ summary_html }}</div>
 
   {% if decisions %}
   <h2 style="font-size:15px;margin:0 0 8px;text-transform:uppercase;letter-spacing:.06em;color:#57534e;">Decisions</h2>

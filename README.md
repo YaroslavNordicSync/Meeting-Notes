@@ -425,8 +425,14 @@ new format.
    `Name <address@example.com>`, separated by commas or semicolons, deduplicated
    by address.
 
-Prompts live in `prompts/map.md` and `prompts/reduce.md` — edit those, not the
-code. Their central rule: invent nothing; anything inferred goes only into
+Prompts live in `prompts/map.md`, `prompts/reduce.md` and `prompts/summary.md` —
+edit those, not the code. The summary is written in a call of its own, as plain
+markdown, the way Granola lays it out: a `##` heading per topic, short bullets
+with the speaker's name first, numbers and names exactly as said, and no
+decisions or next-steps section (those are fields of their own). A short call
+gets one section, an hour about six; a long call's parts each note their topics,
+and the summary is written from those. The window shows it formatted (click to
+edit the markdown), and the email renders it the same way. Their central rule: invent nothing; anything inferred goes only into
 `assumptions` and must carry a verbatim quote; answer in the language of the
 meeting.
 
@@ -450,7 +456,7 @@ notes, you read the first part as fact and the assumptions as a to-check list.
   "title": "…",
   "date": "2026-09-23",
   "participants": ["…"],
-  "summary": "five to seven sentences",
+  "summary": "## Topic\n- Anna: a point\n  - a detail",   // markdown
   "decisions": ["…"],
   "action_items":   [{ "owner": "…", "task": "…", "deadline": "by Thursday|null" }],
   "assumptions":    [{ "statement": "…", "confidence": "low|medium|high", "evidence_quote": "…" }],

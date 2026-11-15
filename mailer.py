@@ -14,6 +14,8 @@ from email.message import EmailMessage
 from email.utils import getaddresses, parseaddr
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
+from markdown_it import MarkdownIt
+from markupsafe import Markup
 
 import paths
 
@@ -155,12 +157,32 @@ def email_of(entry: str) -> str:
     return parseaddr(entry)[1].strip()
 
 
+# The summary is markdown. Raw HTML in it stays text; mail clients drop <style>,
+# so every tag the summary can have carries its look inline.
+_markdown = MarkdownIt("commonmark", {"html": False}).disable(["link", "image", "autolink"])
+STYLES = {
+    "<h2>": '<h2 style="font-size:16px;line-height:1.35;margin:20px 0 6px;color:#1c1917;">',
+    "<ul>": '<ul style="margin:0 0 12px;padding-left:20px;">',
+    "<li>": '<li style="margin-bottom:4px;">',
+    "<p>": '<p style="margin:0 0 12px;">',
+}
+
+
+def summary_html(text: str) -> Markup:
+    """The summary's markdown as email HTML; old prose summaries become one paragraph."""
+    html = _markdown.render(text or "")
+    for tag, styled in STYLES.items():
+        html = html.replace(tag, styled)
+    return Markup(html)
+
+
 def render(data: dict) -> tuple:
     """-> (subject, html)"""
     subject = f"Meeting notes: {data.get('title') or 'meeting'}"
     if data.get("date"):
         subject += f" ({data['date']})"
-    html = _env.get_template("email.html").render(**data)
+    html = _env.get_template("email.html").render(
+        **data, summary_html=summary_html(data.get("summary", "")))
     return subject, html
 
 

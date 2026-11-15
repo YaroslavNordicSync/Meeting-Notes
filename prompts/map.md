@@ -4,6 +4,10 @@ RULES
 - Do not invent anything. Write only what is stated outright in this fragment.
 - If something is not said explicitly, it is not a fact. Such things belong in
   open_questions.
+- topics: what this fragment was about, one entry per topic, each with a
+  concrete name ("pricing of the new plan", never "discussion") and its points:
+  short statements of what was said, with numbers, names and dates exactly as
+  spoken, and who said it when that matters. Leave out small talk.
 - action_items: every task someone was given or took on. A person saying they
   will do something is an action item with that speaker as the owner. Take owner
   names exactly as they appear in the transcript.
@@ -24,5 +28,5 @@ FRAGMENT {{PART_INDEX}} of {{TOTAL_PARTS}}
 {{CHUNK}}
 ---
 
-Return JSON with the fields, in this order: facts, action_items[{owner, task,
+Return JSON with the fields, in this order: topics[{topic, points}], action_items[{owner, task,
 deadline}], decisions, quotes, open_questions.

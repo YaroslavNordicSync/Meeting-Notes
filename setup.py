@@ -10,7 +10,7 @@ DATA_FILES = [
     ("ui/dist", ["ui/dist/index.html"]),
     ("ui/dist/assets", glob("ui/dist/assets/*")),
     ("assets", ["assets/icon.png", "assets/icon-paused.png"]),
-    ("prompts", ["prompts/map.md", "prompts/reduce.md"]),
+    ("prompts", ["prompts/map.md", "prompts/reduce.md", "prompts/summary.md"]),
     ("templates", ["templates/email.html"]),
     ("", [".env.example"]),
 ]
@@ -23,8 +23,8 @@ OPTIONS = {
         "CFBundleDisplayName": "Meeting Notes",
         "CFBundleIdentifier": "local.meetingnotes.app",
         # The version of the commit it was built from: v0.MINOR.PATCH.
-        "CFBundleShortVersionString": "0.14.3",
-        "CFBundleVersion": "0.14.3",
+        "CFBundleShortVersionString": "0.15.0",
+        "CFBundleVersion": "0.15.0",
         "LSMinimumSystemVersion": "12.0",
         "NSHighResolutionCapable": True,
         # The UI is served from 127.0.0.1, which needs an ATS exception.
@@ -47,6 +47,8 @@ OPTIONS = {
     "packages": ["rumps", "watchdog", "jinja2", "dotenv", "docx", "requests",
                  # Its own dylibs (onnxruntime) travel inside the package folder.
                  "sherpa_onnx",
+                 # Its parser rules are loaded by name.
+                 "markdown_it", "mdurl",
                  "certifi", "urllib3", "charset_normalizer", "idna",
                  # keyring finds its backends through entry points, which do not
                  # survive the bundle — mailer picks the macOS one by hand.

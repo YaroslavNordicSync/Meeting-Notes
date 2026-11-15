@@ -102,6 +102,7 @@ def test_the_model_is_told_who_the_voices_are(monkeypatch):
     prompts = []
     monkeypatch.setattr(llm, "generate_json",
                         lambda prompt, schema, model: prompts.append(prompt) or {"title": "t"})
+    monkeypatch.setattr(llm, "generate_text", lambda prompt, model: prompts.append(prompt) or "")
     llm.summarize([("Me", "hi"), ("Speaker 1", "hello Me")], {"source": "Call.vtt"}, model="m")
     assert '"Speaker N" and "Them" are the other people' in prompts[0]
 

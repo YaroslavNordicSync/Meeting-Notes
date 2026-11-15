@@ -1,5 +1,10 @@
+import MarkdownIt from "markdown-it";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { api, lines } from "./api.js";
+
+// The summary is markdown, as in the email. No HTML, links or images: a click
+// on a link would take the window away from the app.
+const md = new MarkdownIt("commonmark", { html: false }).disable(["link", "image", "autolink"]);
 
 // One meeting's notes as a document: every part editable in place, and the
 // way out at the bottom — recipients, save, send.
@@ -73,7 +78,7 @@ export default function Notes({ meeting, state, head, refresh, say }) {
         </div>
 
         <Section label="Summary">
-          <Grow value={notes.summary || ""} onChange={set("summary")} placeholder="What happened" />
+          <Summary value={notes.summary || ""} onChange={set("summary")} />
         </Section>
 
         <ListSection label="Decisions" value={notes.decisions} onChange={set("decisions")} />
@@ -157,8 +162,20 @@ function ListSection({ label, value, onChange }) {
   );
 }
 
+// Shown formatted; a click edits the markdown, and leaving the field shows it
+// formatted again.
+function Summary({ value, onChange }) {
+  const [editing, setEditing] = useState(false);
+  if (editing || !value.trim()) {
+    return <Grow value={value} onChange={onChange} placeholder="What happened" autoFocus={editing}
+                 onFocus={() => setEditing(true)} onBlur={() => setEditing(false)} />;
+  }
+  return <div className="md" title="Click to edit" onClick={() => setEditing(true)}
+              dangerouslySetInnerHTML={{ __html: md.render(value) }} />;
+}
+
 // A textarea as tall as what is in it.
-function Grow({ value, onChange, className = "", placeholder }) {
+function Grow({ value, onChange, className = "", placeholder, ...rest }) {
   const ref = useRef(null);
   useLayoutEffect(() => {
     const el = ref.current;
@@ -167,6 +184,6 @@ function Grow({ value, onChange, className = "", placeholder }) {
   }, [value]);
   return (
     <textarea ref={ref} rows={1} className={`grow ${className}`} value={value}
-              placeholder={placeholder} onChange={(e) => onChange(e.target.value)} />
+              placeholder={placeholder} onChange={(e) => onChange(e.target.value)} {...rest} />
   );
 }

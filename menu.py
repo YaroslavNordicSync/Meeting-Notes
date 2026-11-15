@@ -13,6 +13,7 @@ from pathlib import Path
 MARK = {"found": "·", "processing": "…", "ready": "●", "sent": "✓", "failed": "✕"}
 MAIL_MODES = (("outlook_draft", "Draft in Outlook"), ("smtp", "Send over SMTP"))
 STAGES = {"map": "part {i}/{n}", "reduce": "writing the notes",
+          "summary": "writing the summary",
           "pull": "downloading {i}/{n} MB", "waiting": "waiting for Ollama",
           "starting": "starting"}
 TITLE_LIMIT = 42

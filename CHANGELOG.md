@@ -6,6 +6,15 @@ its commit message; open problems live in the project note, not here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follow the commit
 messages: `v0.MINOR.PATCH`, MINOR for a feature or substantial change, PATCH for a fix.
 
+## v0.15.0 — 2026-11-15
+### Changed
+- The summary is markdown now, laid out like Granola: a heading per topic, short bullets
+  with who said it first, numbers and names as spoken. It is written in a model call of
+  its own instead of as one field of the notes JSON.
+- Long meetings note their topics part by part; the summary is written from those.
+- The window shows the summary formatted (click it to edit the markdown); the email
+  renders it the same way. Older prose summaries still read as before.
+
 ## v0.14.3 — 2026-11-15
 ### Fixed
 - Quitting while notes were being written left an Ollama running on its own, and the

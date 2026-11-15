@@ -238,3 +238,15 @@ def test_the_password_is_never_logged(temp_env, keychain, smtp, caplog):
 
     assert SECRET not in caplog.text
     assert ADDRESS in caplog.text          # the address itself is not a secret
+
+
+def test_the_summary_goes_into_the_email_formatted_and_nothing_in_it_runs():
+    _, html = mailer.render({"title": "Sync", "summary": (
+        "## Pricing\n- Too cheap <script>alert(1)</script>\n  - raise to [949](javascript:x)")})
+    assert '<h2 style=' in html and "Pricing</h2>" in html
+    assert html.count("<ul style=") == 2                     # the nested point stays nested
+    assert "<script>" not in html and "&lt;script&gt;" in html
+    assert "<a " not in html
+    # Notes written before summaries were markdown: their prose is one paragraph.
+    _, html = mailer.render({"title": "Old", "summary": "We met. We agreed."})
+    assert '<p style="margin:0 0 12px;">We met. We agreed.</p>' in html

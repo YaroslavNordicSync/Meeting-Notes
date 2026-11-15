@@ -123,3 +123,43 @@ def test_without_ollama_installed_nothing_starts(monkeypatch):
     monkeypatch.setattr(llm, "ollama_up", lambda: False)
     monkeypatch.setattr(llm, "ollama_binary", lambda: "")
     assert not llm.Ollama().ensure()
+
+
+def test_the_summary_is_markdown_without_what_the_notes_hold_elsewhere():
+    raw = ("<think>hm</think>```markdown\n# Pricing\n- Price seen as too low\n"
+           "  - raise to 949\n\n\n## Next steps\n- Filip changes the price\n"
+           "### Ads\n- Meta ads: Jakov\n## Open questions and risks\n- who owns it\n```")
+    assert llm.clean_summary(raw) == (
+        "## Pricing\n- Price seen as too low\n  - raise to 949\n\n## Ads\n- Meta ads: Jakov")
+
+
+def test_a_short_call_gets_a_short_summary_and_an_hour_a_long_one():
+    assert llm.summary_size(300) == (1, 5)              # a few minutes
+    assert llm.summary_size(1500) == (5, 25)            # twenty
+    assert llm.summary_size(9000) == (6, 40)            # an hour
+
+
+def test_the_summary_is_written_in_its_own_call_from_the_transcript_or_the_topics(monkeypatch):
+    notes = json.dumps({"title": "Sync", "date": "", "participants": ["Anna"], "action_items": [],
+                        "decisions": [], "assumptions": [], "open_questions": []})
+    part = json.dumps({"topics": [{"topic": "Pricing", "points": ["too cheap"]}],
+                       "action_items": [], "decisions": [], "quotes": [], "open_questions": []})
+    turns = [("Anna", "We talk about pricing. " * 10)] * 3
+
+    post, sent = answers((200, notes), (200, "## Pricing\n- too cheap"))
+    monkeypatch.setattr(llm.requests, "post", post)
+    out = llm.summarize(turns, {"source": "x.vtt", "date": ""}, model="m")
+    assert out["summary"] == "## Pricing\n- too cheap" and out["title"] == "Sync"
+    assert "format" in sent[0] and "format" not in sent[1]          # JSON, then free text
+    assert "We talk about pricing" in sent[1]["prompt"]
+
+    # A long call: parts first, then the notes, then the summary from the parts' topics.
+    sizes = {"MAP_THRESHOLD_TOKENS": 10, "CHUNK_TOKENS": 80, "OVERLAP_TURNS": 0}
+    monkeypatch.setattr(llm.paths, "number", lambda k: sizes.get(k, 0.2))
+    post, sent = answers((200, part), (200, part), (200, part), (200, notes),
+                         (200, "## Pricing\n- too cheap"))
+    monkeypatch.setattr(llm.requests, "post", post)
+    out = llm.summarize(turns, {"source": "x.vtt", "date": ""}, model="m")
+    assert out["summary"] == "## Pricing\n- too cheap"
+    assert "PART 1\n- Pricing\n  - too cheap" in sent[-1]["prompt"]
+    assert "We talk about pricing" not in sent[-1]["prompt"]

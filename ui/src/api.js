@@ -11,6 +11,7 @@ export async function api(path, body) {
 const STAGES = {
   map: (j) => `reading part ${j.i}/${j.n}`,
   reduce: () => "writing the notes",
+  summary: () => "writing the summary",
   pull: (j) => `downloading ${j.i}/${j.n} MB`,
   waiting: () => "waiting for Ollama",
   starting: () => "starting",

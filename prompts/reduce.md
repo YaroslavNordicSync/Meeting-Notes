@@ -4,9 +4,8 @@ RULES
 - Invent nothing that is not in the source material.
 - Anything not said outright but inferred by you goes ONLY into assumptions, each
   with evidence_quote: the verbatim line the inference rests on. Guesses have no
-  place in summary, decisions or action_items.
+  place in decisions or action_items.
 - confidence: low | medium | high — how strongly the quote supports the inference.
-- summary: five to seven sentences of connected prose, no bullet points.
 - decisions: only what the participants actually settled on. A proposal that was
   turned down is not a decision.
 - action_items: every task someone was given or took on. A person saying they
@@ -44,6 +43,6 @@ PER-FRAGMENT NOTES (if empty, work from the transcript below)
 TRANSCRIPT (if empty, work from the notes above)
 {{TRANSCRIPT}}
 
-Return JSON with the fields, in this order: title, date, participants, summary,
+Return JSON with the fields, in this order: title, date, participants,
 action_items[{owner, task, deadline}], decisions,
 assumptions[{statement, confidence, evidence_quote}], open_questions.

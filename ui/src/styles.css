@@ -158,6 +158,17 @@ button.more { font-size: 18px; letter-spacing: 1px; color: var(--ink-2); }
   font: 600 16px/1.3 var(--sans); margin-bottom: var(--s2); min-height: 28px; }
 .section .grow, .section .table { margin-left: calc(-1 * var(--s2)); width: calc(100% + var(--s2) * 2); }
 .section > p.dim { font-size: 13px; }
+/* The summary, formatted: what the model wrote in markdown. */
+.md { margin: 0 calc(-1 * var(--s2)); padding: 6px var(--s2); border-radius: var(--r); cursor: text; line-height: 1.6; }
+.md:hover { background: var(--side); }
+.md h2 { font: 600 15px/1.35 var(--sans); margin: var(--s4) 0 var(--s1); }
+.md h2:first-child { margin-top: 0; }
+.md ul { margin: 0 0 var(--s2); padding-left: 20px; }
+.md li { margin: 2px 0; }
+.md li > ul { margin: 2px 0 0; }
+.md li li { color: var(--ink-2); }
+.md p { margin: 0 0 var(--s2); }
+.md strong { font-weight: 600; }
 .table { display: flex; flex-direction: column; }
 .tr { display: grid; grid-template-columns: 120px 1fr 100px 24px; gap: var(--s1); align-items: start;
   border-bottom: 1px solid var(--line); padding: 2px 0; }

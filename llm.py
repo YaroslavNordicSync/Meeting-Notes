@@ -45,13 +45,15 @@ ACTION_ITEM = {
     "required": ["owner", "task", "deadline"],
 }
 
-SUMMARY_SCHEMA = {
+# Everything in the notes but the summary, which is written apart, in markdown:
+# a 9b model asked for prose inside a JSON string beside five other fields
+# wrote a flat paragraph.
+NOTES_SCHEMA = {
     "type": "object",
     "properties": {
         "title": {"type": "string"},
         "date": {"type": "string"},
         "participants": {"type": "array", "items": {"type": "string"}},
-        "summary": {"type": "string"},
         "action_items": {"type": "array", "items": ACTION_ITEM},
         "decisions": {"type": "array", "items": {"type": "string"}},
         "assumptions": {
@@ -72,7 +74,7 @@ SUMMARY_SCHEMA = {
     # decisions: written the other way round, the tasks went into decisions and
     # were then left out of action_items.
     "required": [
-        "title", "date", "participants", "summary", "action_items",
+        "title", "date", "participants", "action_items",
         "decisions", "assumptions", "open_questions",
     ],
 }
@@ -80,13 +82,18 @@ SUMMARY_SCHEMA = {
 MAP_SCHEMA = {
     "type": "object",
     "properties": {
-        "facts": {"type": "array", "items": {"type": "string"}},
+        # What the fragment was about, point by point: the summary is built from these.
+        "topics": {"type": "array", "items": {
+            "type": "object",
+            "properties": {"topic": {"type": "string"},
+                           "points": {"type": "array", "items": {"type": "string"}}},
+            "required": ["topic", "points"]}},
         "action_items": {"type": "array", "items": ACTION_ITEM},
         "decisions": {"type": "array", "items": {"type": "string"}},
         "quotes": {"type": "array", "items": {"type": "string"}},
         "open_questions": {"type": "array", "items": {"type": "string"}},
     },
-    "required": ["facts", "action_items", "decisions", "quotes", "open_questions"],
+    "required": ["topics", "action_items", "decisions", "quotes", "open_questions"],
 }
 
 
@@ -298,6 +305,62 @@ def generate_json(prompt: str, schema: dict, model: str) -> dict:
     raise ValueError(f"model returned no valid JSON after 2 attempts: {last_err}")
 
 
+def generate_text(prompt: str, model: str) -> str:
+    """One /api/generate call for free text (the markdown summary), thinking off
+    as in generate_json. Retried once, colder, if nothing usable comes back."""
+    payload = {"model": model, "prompt": prompt + "\n/no_think", "stream": False,
+               "think": False,
+               "options": {"num_ctx": int(paths.number("NUM_CTX")),
+                           "temperature": paths.number("TEMPERATURE")}}
+    endpoint, limit = f"{url()}/api/generate", timeout()
+    for _ in (1, 2):
+        r = requests.post(endpoint, json=payload, timeout=limit)
+        if r.status_code == 400 and "think" in r.text.lower():
+            payload.pop("think", None)
+            r = requests.post(endpoint, json=payload, timeout=limit)
+        r.raise_for_status()
+        text = clean_summary(r.json().get("response", ""))
+        if text:
+            return text
+        payload["options"]["temperature"] = 0.0
+    raise ValueError("the model wrote no summary")
+
+
+# Sections the notes already have elsewhere; a summary that repeats them is cut there.
+ELSEWHERE = re.compile(
+    r"(next steps?|action items?|to.?dos?|decisions?|follow.?ups?|open questions?|"
+    r"neste steg|oppgaver|beslutninger|åpne spørsmål|"
+    r"следующие шаги|задачи|решения|открытые вопросы)\W*$", re.I)
+
+
+def clean_summary(text: str) -> str:
+    """The model's markdown as the notes keep it: no thinking, no code fence
+    around it, headings at ## so they sit under the meeting's title, and none of
+    the sections the notes hold apart (decisions, action items)."""
+    text = re.sub(r"<think>.*?</think>", "", text, flags=re.S).strip()
+    text = re.sub(r"^```(?:markdown|md)?\s*\n(.*?)\n```$", r"\1", text, flags=re.S).strip()
+    out, skipping = [], False
+    for line in text.splitlines():
+        heading = re.match(r"^(#{1,6})\s+(.*)", line)
+        if heading:
+            skipping = bool(ELSEWHERE.match(heading.group(2).strip("*_ ").split(" и ")[0]
+                                            .split(" and ")[0].split(" og ")[0]))
+            if skipping:
+                continue
+            line = "## " + heading.group(2).strip()
+        if not skipping:
+            out.append(line.rstrip())
+    return re.sub(r"\n{3,}", "\n\n", "\n".join(out)).strip()
+
+
+def summary_size(words: int) -> tuple:
+    """How long the summary should be, as numbers a 9b model can follow:
+    (most sections, top-level bullets). A few minutes get one section, twenty
+    about five, an hour six. Tighter than this, 9b ignores the numbers."""
+    sections = 1 if words <= 400 else min(6, words // 500 + 2)
+    return sections, max(3, min(40, words // 60))
+
+
 # ---------------------------------------------------------------- map-reduce
 
 def estimate_tokens(text: str) -> int:
@@ -340,8 +403,19 @@ def _prompt(name: str, **vars_) -> str:
     return text
 
 
+def topic_outline(notes: list) -> str:
+    """The per-fragment topics as one outline, in the order they came up."""
+    lines = []
+    for part in notes:
+        lines.append(f"PART {part['part']}")
+        for t in part.get("topics") or []:
+            lines.append(f"- {t.get('topic', '')}")
+            lines += [f"  - {p}" for p in t.get("points") or []]
+    return "\n".join(lines)
+
+
 def summarize(turns, meta: dict, model: str = None, progress_cb=None) -> dict:
-    """Turns -> the final JSON described by SUMMARY_SCHEMA."""
+    """Turns -> the notes: NOTES_SCHEMA's fields, and `summary` in markdown."""
     from parser import UNKNOWN, speakers, to_text
 
     model = model or MODEL
@@ -364,10 +438,15 @@ def summarize(turns, meta: dict, model: str = None, progress_cb=None) -> dict:
         if progress_cb:
             progress_cb(stage, i, n)
 
+    sections, bullets = summary_size(len(full.split()))
+    size = dict(SECTIONS=sections, BULLETS=bullets)
     if estimate_tokens(full) <= paths.number("MAP_THRESHOLD_TOKENS"):
         report("reduce", 1, 1)
         result = generate_json(
-            _prompt("reduce", META=meta_line, NOTES="", TRANSCRIPT=full), SUMMARY_SCHEMA, model)
+            _prompt("reduce", META=meta_line, NOTES="", TRANSCRIPT=full), NOTES_SCHEMA, model)
+        report("summary", 1, 1)
+        result["summary"] = generate_text(
+            _prompt("summary", META=meta_line, TOPICS="", TRANSCRIPT=full, **size), model)
     else:
         chunks = chunk_turns(turns)
         notes = []
@@ -381,7 +460,11 @@ def summarize(turns, meta: dict, model: str = None, progress_cb=None) -> dict:
         result = generate_json(
             _prompt("reduce", META=meta_line,
                     NOTES=json.dumps(notes, ensure_ascii=False, indent=2),
-                    TRANSCRIPT=""), SUMMARY_SCHEMA, model)
+                    TRANSCRIPT=""), NOTES_SCHEMA, model)
+        report("summary", len(chunks), len(chunks))
+        result["summary"] = generate_text(
+            _prompt("summary", META=meta_line, TOPICS=topic_outline(notes), TRANSCRIPT="",
+                    **size), model)
 
     if not result.get("participants"):
         result["participants"] = named
