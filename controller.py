@@ -146,6 +146,29 @@ class Controller:
         if not llm.ollama_binary():
             self._notice("Ollama is not installed", "Install it with: brew install ollama")
         self.probe()
+        self.resume_calls()
+
+    def resume_calls(self):
+        """Calls that a quit, a crash or an install cut off before their transcript
+        was written get it now, one at a time, oldest first; a transcript that
+        never reached the notes is summarised. Runs on the start-up thread."""
+        for item in reversed(self.lone_recordings()):
+            folder = archive.recording(item["name"])
+            transcript = folder / f"Call {folder.name}.vtt"
+            if transcript.exists():
+                if transcript.read_text(encoding="utf-8").strip() != "WEBVTT":
+                    log.info("Summarising %s, which was transcribed but never summarised",
+                             folder.name)
+                    pipeline.submit(transcript)
+                continue
+            if not (folder / "system.wav").exists() and not (folder / "mic.wav").exists():
+                continue
+            while self.recorder.recording or self.retranscribing:
+                time.sleep(5)               # one transcription at a time
+            log.info("Transcribing %s, which a quit left without a transcript", folder.name)
+            self.retranscribing[folder.name] = "transcribing"
+            self._changed()
+            self._retranscribe(folder, "Call transcribed")
 
     def probe(self):
         """Ask Ollama whether it is up, and the disk whether the model is there.
@@ -370,7 +393,7 @@ class Controller:
         threading.Thread(target=self._retranscribe, args=(folder,), daemon=True).start()
         self._changed()
 
-    def _retranscribe(self, folder):
+    def _retranscribe(self, folder, done: str = "Transcribed again"):
         old = self._meetings_in(folder)
         try:
             transcript = Live(folder, relabel=speakers.relabel).finish_all()
@@ -385,7 +408,7 @@ class Controller:
                     if row and row["notes"] and Path(row["notes"]).exists():
                         Path(row["notes"]).unlink()
                     history.set_status(h, "archived")
-            self._notice("Transcribed again", "Writing the notes now" if decision.queued
+            self._notice(done, "Writing the notes now" if decision.queued
                          else decision.error or decision.note)
         except Exception as e:
             log.error("Transcribing %s again failed: %s", folder.name, e)

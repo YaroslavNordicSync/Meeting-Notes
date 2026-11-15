@@ -270,6 +270,11 @@ when the live transcript missed things; the meeting is then summarised again. A
 recording in which nothing was recognised still shows in the list, so it can be
 transcribed again or deleted.
 
+A call that a quit, a crash or an install cut off before its transcript was
+written is picked up at the next start: transcribed, one call at a time, and
+summarised. A finished call with no speech keeps an empty `.vtt` as the mark that
+it was done, so it is not redone on every start.
+
 ## Deleting
 
 *Delete* on a meeting moves its notes — and, for a recorded call, the whole

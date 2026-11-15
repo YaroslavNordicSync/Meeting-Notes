@@ -6,6 +6,14 @@ its commit message; open problems live in the project note, not here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follow the commit
 messages: `v0.MINOR.PATCH`, MINOR for a feature or substantial change, PATCH for a fix.
 
+## v0.15.1 — 2026-11-15
+### Fixed
+- A call cut off before its transcript was written — the app quit, crashed or was
+  reinstalled right after the call — is transcribed and summarised at the next start,
+  one at a time. A transcript that never reached the notes is summarised.
+### Changed
+- A call with no speech in it keeps an empty transcript as the mark that it is done.
+
 ## v0.15.0 — 2026-11-15
 ### Changed
 - The summary is markdown now, laid out like Granola: a heading per topic, short bullets

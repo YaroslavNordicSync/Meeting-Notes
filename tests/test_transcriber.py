@@ -128,13 +128,14 @@ def test_a_call_becomes_a_transcript_the_pipeline_reads(tmp_path):
                      ("Me", "I can take the migration")]
 
 
-def test_a_silent_call_writes_nothing(tmp_path):
+def test_a_silent_call_writes_only_an_empty_transcript_as_its_done_mark(tmp_path):
     start_wav(tmp_path / "system.wav")
     start_wav(tmp_path / "mic.wav")
     live = Live(tmp_path, transcribe=lambda s, u: Heard("Thank you.", "english"))
     live.start()
     assert live.finish() is None
-    assert not list(tmp_path.glob("*.vtt"))
+    [mark] = tmp_path.glob("*.vtt")
+    assert mark.read_text() == "WEBVTT\n"
 
 
 def test_no_whisper_installed_keeps_the_recording_and_says_why(tmp_path, monkeypatch):

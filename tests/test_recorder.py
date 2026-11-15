@@ -80,7 +80,9 @@ def test_a_recording_is_a_folder_with_both_streams_and_their_timing(helper):
 
     assert wait_until(lambda: events == ["started", "transcribed"])
     assert not rec.snapshot()["recording"] and not rec.snapshot()["transcribing"]
-    assert sorted(p.name for p in folder.iterdir()) == ["meta.json", "mic.wav", "system.wav"]
+    # The fake streams are empty, so the transcript is only the mark that it is done.
+    assert sorted(p.name for p in folder.iterdir()) == [
+        f"Call {folder.name}.vtt", "meta.json", "mic.wav", "system.wav"]
     meta = json.loads((folder / "meta.json").read_text())
     assert meta["system"]["rate"] == 48000 and meta["mic"]["rate"] == 44100
     assert folder.parent == paths.recordings()

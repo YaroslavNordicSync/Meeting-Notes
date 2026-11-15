@@ -135,3 +135,32 @@ def test_a_call_is_transcribed_again_and_its_old_meeting_gives_way(box, summaris
     fresh = [m for m in history.listing() if m["hash"] != old]
     assert len(fresh) == 1
     assert wait_until(lambda: history.find(fresh[0]["hash"])["status"] == "ready")
+
+
+def test_calls_a_quit_cut_off_are_transcribed_at_start_up(box, summarised, monkeypatch):
+    cut_off = recorded_call("2026-11-01 10-00-00")                 # audio, no transcript
+    silent = recorded_call("2026-11-02 10-00-00")
+    (silent / "Call 2026-11-02 10-00-00.vtt").write_text("WEBVTT\n")   # nothing was said
+    unsent = recorded_call("2026-11-03 10-00-00")                 # transcript, no notes
+    write_transcript(unsent, "Call 2026-11-03 10-00-00.vtt", topic="the budget")
+    transcribed = []
+
+    class Whisper:
+        def __init__(self, folder, **_):
+            self.folder = folder
+
+        def finish_all(self):
+            transcribed.append(self.folder.name)
+            return write_transcript(self.folder, f"Call {self.folder.name}.vtt")
+    monkeypatch.setattr(controller, "Live", Whisper)
+    app = controller.Controller()
+
+    app.resume_calls()
+
+    assert transcribed == [cut_off.name]
+    assert wait_until(lambda: len(history.listing()) == 2)
+    assert {archive.recording_of(m["source"]) for m in history.listing()} == {cut_off, unsent}
+    assert not app.retranscribing
+    # Done once: the next start-up finds nothing left to do.
+    app.resume_calls()
+    assert transcribed == [cut_off.name]

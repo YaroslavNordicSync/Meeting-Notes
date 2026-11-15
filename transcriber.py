@@ -448,9 +448,12 @@ class Live:
             self.lines = lines
             self.version += 1
             self.status = "done"
-        if not lines:
-            return None
         out = self.folder / f"Call {self.folder.name}.vtt"
+        if not lines:
+            # Still written, empty: the mark of a call that was finished, so the
+            # next start-up does not take it for one a quit cut off.
+            out.write_text("WEBVTT\n", encoding="utf-8")
+            return None
         out.write_text(to_vtt(lines), encoding="utf-8")
         return out
 
