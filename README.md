@@ -198,7 +198,10 @@ browser — with no bot joining it. A small Swift helper inside the app reads th
 Mac's own sound through a Core Audio process tap (macOS 14.2+) and the microphone,
 into `recordings/<date time>/` in the data folder: `system.wav` (the others),
 `mic.wav` (you) and `meta.json` (formats and start time). The window shows a clock
-and a level meter for each, so a silent stream shows up during the call.
+and a level meter for each, so a silent stream shows up during the call. When the
+microphone changes mid-call (headphones plugged in, AirPods connecting), the
+helper follows it to the new input by itself and writes the second or so in
+between as silence, so your lines keep their place in time.
 
 The first recording asks for two permissions, *Microphone* and *System Audio
 Recording*, and, for the names of the people in a Teams call, *Accessibility*.

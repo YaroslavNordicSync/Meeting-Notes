@@ -131,6 +131,13 @@ class Recorder:
                         self._state["warning"] = ""
                 log.info("Reading who speaks from %s: %s elements in %.2f s", event.get("app"),
                          event.get("elements"), event.get("seconds", 0.0))
+            elif kind == "mic_changed":
+                log.info("Recorder: the microphone changed (%s Hz, %s ch); %.1f s of silence "
+                         "filled in", event.get("rate"), event.get("channels"),
+                         event.get("gap", 0.0))
+                with self._lock:            # it is back: an old warning about it is over
+                    if self._state["warning"].startswith("the microphone"):
+                        self._state["warning"] = ""
             elif kind == "warning":
                 self._warn(folder, event.get("what", ""))
             elif kind == "error":

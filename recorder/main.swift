@@ -14,6 +14,10 @@
 //   {"event":"level","system":0.12,"mic":0.03,"system_frames":16000,"mic_frames":16000}
 //                                     about once a second; frames written since the last
 //   {"event":"warning","what":"..."}  a stream has delivered nothing for a few seconds
+//   {"event":"mic_changed","rate":24000,"channels":1,"gap":0.8}
+//                                     the microphone was reopened on whatever input is
+//                                     current (headphones plugged in, AirPods connected);
+//                                     the gap, in seconds, was written as silence
 //   {"event":"error","what":"...","status":-1}
 //   {"event":"stopped","seconds":63.2}
 //
@@ -71,21 +75,44 @@ let target = AVAudioFormat(commonFormat: .pcmFormatInt16, sampleRate: 16000, cha
 /// channel is kept: a microphone array hands over several, and mixing them all
 /// is what turned one into silence.
 final class Writer {
-    private let converter: AVAudioConverter
+    private var converter: AVAudioConverter
     private var file: AVAudioFile?
     private let lock = NSLock()
     private var written: AVAudioFrameCount = 0
+    private(set) var lastWrite = Date()
 
     init(from format: AVAudioFormat, to url: URL) {
-        guard let converter = AVAudioConverter(from: format, to: target) else {
-            fail("cannot convert \(format) for \(url.lastPathComponent)")
-        }
-        if format.channelCount > 1 { converter.channelMap = [0] }
-        self.converter = converter
+        converter = Writer.converter(from: format, for: url.lastPathComponent)
         do {
             file = try AVAudioFile(forWriting: url, settings: target.settings,
                                    commonFormat: .pcmFormatInt16, interleaved: true)
         } catch { fail("could not open \(url.lastPathComponent): \(error)") }
+    }
+
+    private static func converter(from format: AVAudioFormat, for name: String) -> AVAudioConverter {
+        guard let converter = AVAudioConverter(from: format, to: target) else {
+            fail("cannot convert \(format) for \(name)")
+        }
+        if format.channelCount > 1 { converter.channelMap = [0] }
+        return converter
+    }
+
+    /// The source now delivers another format. Only while nothing is writing.
+    func switchTo(_ format: AVAudioFormat) {
+        converter = Writer.converter(from: format, for: "the new microphone")
+    }
+
+    /// Silence for the time nothing came in, so the file keeps the call's timing.
+    func padSilence(seconds: Double) {
+        var left = AVAudioFrameCount(max(0, seconds) * target.sampleRate)
+        lock.lock(); defer { lock.unlock() }
+        while left > 0 {
+            let n = min(left, 16000)
+            guard let zeros = AVAudioPCMBuffer(pcmFormat: target, frameCapacity: n) else { return }
+            zeros.frameLength = n       // a new buffer is zero-filled
+            try? file?.write(from: zeros)
+            left -= n
+        }
     }
 
     func write(_ buffer: AVAudioPCMBuffer) {
@@ -104,6 +131,7 @@ final class Writer {
         lock.lock()
         try? file?.write(from: out)
         written += out.frameLength
+        lastWrite = Date()
         lock.unlock()
     }
 
@@ -241,19 +269,28 @@ final class SystemRecorder {
 
 final class MicRecorder {
     let meter = Meter()
-    private let engine = AVAudioEngine()
+    private var engine = AVAudioEngine()
     private(set) var writer: Writer?
     private(set) var format: AVAudioFormat!
+    private var changed: NSObjectProtocol?
 
     // Apple's voice processing (echo cancellation) is deliberately not used: on
     // macOS it reconfigures the audio devices, which starved the system tap and
     // turned the microphone into a 9-channel stream of silence. Echo is handled
     // on the text instead, against the clean system stream.
     func start(to url: URL) {
-        let input = engine.inputNode
-        format = input.outputFormat(forBus: 0)
-        if format.sampleRate == 0 { fail("no microphone") }
+        guard let format = open() else { fail("no microphone") }
         writer = Writer(from: format, to: url)
+        listen()
+        do { try engine.start() } catch { fail("could not start the microphone: \(error)") }
+    }
+
+    /// Taps the current input; nil when there is none to tap right now.
+    private func open() -> AVAudioFormat? {
+        let input = engine.inputNode
+        let format = input.outputFormat(forBus: 0)
+        if format.sampleRate == 0 { return nil }
+        self.format = format
         // Deprecated in macOS 27, still the documented way on 14–26, which is
         // what the app supports.
         input.installTap(onBus: 0, bufferSize: 4096, format: format) { [weak self] buffer, _ in
@@ -261,10 +298,38 @@ final class MicRecorder {
             self.meter.feed(buffer)
             self.writer?.write(buffer)
         }
-        do { try engine.start() } catch { fail("could not start the microphone: \(error)") }
+        return format
+    }
+
+    /// macOS moves the input when headphones come or go; the engine then stops
+    /// for good, so it is rebuilt on whatever input is current.
+    private func listen() {
+        changed = NotificationCenter.default.addObserver(
+            forName: .AVAudioEngineConfigurationChange, object: engine, queue: .main) { [weak self] _ in
+            self?.reopen()
+        }
+    }
+
+    /// Main thread only. Also called when the microphone has gone quiet without
+    /// a word, in case the change came unannounced.
+    func reopen() {
+        guard let writer else { return }
+        if let changed { NotificationCenter.default.removeObserver(changed) }
+        engine.inputNode.removeTap(onBus: 0)
+        engine.stop()
+        engine = AVAudioEngine()
+        guard let format = open() else { return }     // no input yet: tried again later
+        writer.switchTo(format)
+        let gap = Date().timeIntervalSince(writer.lastWrite)
+        writer.padSilence(seconds: gap)
+        listen()
+        do { try engine.start() } catch { return }
+        say(["event": "mic_changed", "rate": format.sampleRate, "channels": Int(format.channelCount),
+             "gap": (gap * 10).rounded() / 10])
     }
 
     func stop() {
+        if let changed { NotificationCenter.default.removeObserver(changed) }
         engine.inputNode.removeTap(onBus: 0)
         engine.stop()
         writer?.close()
@@ -472,6 +537,8 @@ let ticker = DispatchSource.makeTimerSource(queue: .main)
 ticker.schedule(deadline: .now() + 1, repeating: 1)
 // A stream that writes nothing for a few seconds is broken, not quiet: the tap
 // delivers zeros when nothing plays and a microphone always hears something.
+// A silent microphone is reopened every few seconds first; only if that does
+// not bring it back is it reported.
 var idle = ["system": 0, "mic": 0]
 ticker.setEventHandler {
     let frames = ["system": system.writer?.takeWritten() ?? 0, "mic": mic.writer?.takeWritten() ?? 0]
@@ -479,7 +546,10 @@ ticker.setEventHandler {
          "system_frames": frames["system"]!, "mic_frames": frames["mic"]!])
     for (name, n) in frames {
         idle[name] = n == 0 ? idle[name]! + 1 : 0
-        if idle[name] == 3 { say(["event": "warning", "what": "\(name == "mic" ? "the microphone" : "the system audio") has stopped delivering sound"]) }
+        if name == "mic" && idle[name]! >= 2 && idle[name]! % 3 == 2 { mic.reopen() }
+        if idle[name] == (name == "mic" ? 6 : 3) {
+            say(["event": "warning", "what": "\(name == "mic" ? "the microphone" : "the system audio") has stopped delivering sound"])
+        }
     }
 }
 ticker.resume()

@@ -27,6 +27,11 @@ FAKE = textwrap.dedent('''\
         for _ in range(6):
             say(event="level", system=0.5, mic=0.0, system_frames=16000, mic_frames=16000)
     say(event="level", system=0.5, mic=0.25)
+    if "{mode}" == "switch":                    # headphones plugged in mid-call
+        say(event="warning", what="the microphone has stopped delivering sound")
+        sys.stdin.readline()                    # the test has seen the warning
+        say(event="mic_changed", rate=24000, channels=1, gap=0.8)
+        say(event="level", system=0.5, mic=0.5)
     if "{mode}" == "noaccess":
         say(event="speaking", t=0, labels=[], unavailable="no accessibility permission")
         say(event="level", system=0.5, mic=0.5)
@@ -142,6 +147,21 @@ def test_a_microphone_sending_pure_silence_is_reported(helper):
 
     assert wait_until(lambda: ("warning", "the microphone is sending pure silence") in events)
     assert rec.snapshot()["warning"] == "the microphone is sending pure silence"
+    rec.stop()
+
+
+def test_a_microphone_that_changes_mid_call_is_followed_and_the_warning_cleared(helper, caplog):
+    caplog.set_level("INFO", logger="pipeline")
+    helper("switch")
+    rec = Recorder()
+    rec.start()
+    gone = "the microphone has stopped delivering sound"
+    assert wait_until(lambda: rec.snapshot()["warning"] == gone)
+
+    rec.proc.stdin.write("go\n")
+    rec.proc.stdin.flush()
+    assert wait_until(lambda: rec.snapshot()["warning"] == "")
+    assert "0.8 s of silence filled in" in caplog.text
     rec.stop()
 
 

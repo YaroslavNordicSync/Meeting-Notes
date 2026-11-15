@@ -6,6 +6,14 @@ its commit message; open problems live in the project note, not here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follow the commit
 messages: `v0.MINOR.PATCH`, MINOR for a feature or substantial change, PATCH for a fix.
 
+## v0.14.2 — 2026-11-13
+### Fixed
+- Plugging in headphones or connecting AirPods during a call no longer stops your side
+  of the recording: the microphone is reopened on the new input by itself, and the gap
+  is written as silence so the timing stays right.
+- A microphone that goes quiet without notice is reopened every few seconds before it
+  is reported as stopped.
+
 ## v0.14.1 — 2026-11-13
 ### Fixed
 - The "Live call" item in the sidebar filled the whole list with a long red streak while
