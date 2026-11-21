@@ -53,6 +53,9 @@ FAKE = textwrap.dedent('''\
 @pytest.fixture
 def helper(tmp_path, monkeypatch):
     """Install the fake helper; returns a function to pick how it behaves."""
+    if sys.platform == "win32":
+        pytest.skip("a fake helper script cannot be run on Windows")
+
     def install(mode="ok"):
         script = tmp_path / "mn-recorder"
         script.write_text(FAKE.format(python=sys.executable, mode=mode))

@@ -20,9 +20,10 @@ from types import SimpleNamespace  # noqa: E402
 
 import pytest  # noqa: E402
 
+import desktop  # noqa: E402
 import llm  # noqa: E402
-import pipeline  # noqa: E402
 import paths  # noqa: E402
+import pipeline  # noqa: E402
 from helpers import write_transcript  # noqa: E402
 
 
@@ -41,6 +42,16 @@ class FakeOllama:
 
     def close(self):
         self.release()
+
+
+@pytest.fixture(autouse=True)
+def no_real_recorder(monkeypatch, tmp_path):
+    """No test can start the real Swift helper — on a Mac where it is built, that
+    would record. The recorder is somewhere that does not exist unless a test
+    puts a fake there, and recording counts as supported on every system, so
+    its logic is tested everywhere with fakes."""
+    monkeypatch.setattr(paths, "recorder_binary", lambda: tmp_path / "no-real-recorder")
+    monkeypatch.setattr(desktop, "RECORDING", True)
 
 
 @pytest.fixture(autouse=True)

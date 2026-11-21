@@ -6,6 +6,18 @@ its commit message; open problems live in the project note, not here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follow the commit
 messages: `v0.MINOR.PATCH`, MINOR for a feature or substantial change, PATCH for a fix.
 
+## v0.18.0 — 2026-11-20
+### Changed
+- Everything that differs between macOS, Windows and Linux is in `desktop.py`: the data
+  folder, finding Ollama and whisper-server, showing a file, the file pickers, the password
+  store. On macOS nothing changes.
+- On Windows and Linux the core runs, and what is not built there yet — recording, call
+  offers, Outlook drafts, the pickers — says so instead of failing.
+- macOS-only dependencies (rumps, pyobjc) install only on macOS.
+### Added
+- GitHub Actions runs ruff and the tests on macOS, Windows and Ubuntu, and builds the UI.
+- No test can start the real recorder any more, whatever machine it runs on.
+
 ## v0.17.0 — 2026-11-15
 ### Changed
 - Decisions that only repeat an action item are dropped, so decisions hold what was

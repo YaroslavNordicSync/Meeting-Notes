@@ -1,7 +1,8 @@
 """Where the code lives, where the user's data lives, and what the settings say.
 
-The code folder is wherever the app was built from; the data folder is always
-~/Library/Application Support/Meeting Notes, bundled or not. One data folder means
+The code folder is wherever the app was built from; the data folder is the one
+the system expects (desktop.data_dir: ~/Library/Application Support/Meeting Notes
+on macOS), bundled or not. One data folder means
 the built app, a run from source and the CLI share the same settings, notes and
 logs — having two of them was the bug this replaces.
 
@@ -19,6 +20,8 @@ from pathlib import Path
 
 from dotenv import dotenv_values, set_key
 
+import desktop
+
 BUNDLED = bool(getattr(sys, "frozen", False))
 
 if BUNDLED:
@@ -29,9 +32,7 @@ if BUNDLED:
 else:
     CODE = Path(__file__).resolve().parent
 
-DATA = Path(os.environ.get("MEETING_NOTES_DATA")
-            or Path.home() / "Library" / "Application Support" / "Meeting Notes"
-            ).expanduser()
+DATA = Path(os.environ.get("MEETING_NOTES_DATA") or desktop.data_dir()).expanduser()
 
 ENV_FILE = DATA / ".env"
 

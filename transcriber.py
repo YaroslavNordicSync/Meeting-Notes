@@ -19,7 +19,6 @@ import logging
 import math
 import queue
 import re
-import shutil
 import socket
 import subprocess
 import threading
@@ -31,6 +30,7 @@ from pathlib import Path
 
 import requests
 
+import desktop
 import echo
 import paths
 
@@ -244,13 +244,8 @@ def vad_path() -> Path:
 
 
 def server_binary() -> str:
-    """whisper-server from Homebrew. An app opened from Finder has no Homebrew
-    in its PATH, so the usual places are tried by name too."""
-    for candidate in (shutil.which("whisper-server"), "/opt/homebrew/bin/whisper-server",
-                      "/usr/local/bin/whisper-server"):
-        if candidate and Path(candidate).exists():
-            return candidate
-    return ""
+    """whisper.cpp's server, or "" when it is not installed."""
+    return desktop.find("whisper-server")
 
 
 def download(url: str, dest: Path, progress=None):

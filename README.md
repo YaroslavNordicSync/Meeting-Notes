@@ -17,6 +17,18 @@ Nothing is ever emailed without you pressing the button.
 - Python 3.10+ (macOS ships one; `brew install python` also works)
 - Outlook for Mac, if you want drafts. A Gmail app password works instead.
 
+### Windows and Linux
+
+The app is built for macOS. The code is portable underneath: everything that
+differs between systems lives in `desktop.py` — the data folder (`%APPDATA%\Meeting
+Notes` on Windows, `~/.local/share/meeting-notes` on Linux), where Ollama and
+whisper-server are found, showing a file in the file manager, the password store
+(keyring picks Credential Manager or Secret Service). The core runs there: the
+watcher, the notes, email over SMTP and the window's server, and the tests pass
+on all three systems in CI (`.github/workflows/tests.yml`). Not there yet, and
+saying so instead of failing: recording and noticing a call (the recorder is a
+macOS helper), Outlook drafts, the file pickers, the window and menu bar shell.
+
 ## Install
 
 ```bash
@@ -559,6 +571,10 @@ More tests cover a speech-to-text export and what counts as a name. Beside it,
 `test_jobs.py` covers the queue and the watcher, `test_history.py` the
 fingerprint and the history flow, `test_server.py` the window's API, and
 `test_paths.py` the data folder and the settings.
+
+GitHub Actions runs `ruff` and the tests on macOS, Windows and Ubuntu on every
+push, and builds the UI. No test can start the real recorder: `conftest.py`
+points it at a path that does not exist unless a test puts a fake there.
 
 If a transcript ever parses wrong, add its shape to `tests/test_parser.py` and fix the
 regexes in `parser.py` until the suite is green again.

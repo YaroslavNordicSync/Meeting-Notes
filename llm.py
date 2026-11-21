@@ -3,7 +3,6 @@ import json
 import logging
 import os
 import re
-import shutil
 import subprocess
 import threading
 import time
@@ -11,6 +10,7 @@ from pathlib import Path
 
 import requests
 
+import desktop
 import paths
 
 log = logging.getLogger("pipeline")
@@ -107,16 +107,8 @@ def ollama_up() -> bool:
 
 
 def ollama_binary() -> str:
-    """Find the ollama executable.
-
-    A bundled .app inherits a bare PATH from launchd, so `which` alone is not
-    enough — the usual Homebrew locations are checked explicitly.
-    """
-    for candidate in ("/opt/homebrew/bin/ollama", "/usr/local/bin/ollama",
-                      shutil.which("ollama")):
-        if candidate and Path(candidate).exists():
-            return candidate
-    return ""
+    """The ollama executable, or "" when it is not installed."""
+    return desktop.find("ollama")
 
 
 class Ollama:

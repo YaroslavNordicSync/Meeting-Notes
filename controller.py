@@ -6,12 +6,12 @@ called on whatever thread made the change — the menu bar hops to the main thre
 inside them, the window simply polls.
 """
 import math
-import subprocess
 import threading
 import time
 from pathlib import Path
 
 import archive
+import desktop
 import history
 import llm
 import mailer
@@ -26,30 +26,6 @@ from transcriber import Live
 from watcher import Watcher
 
 log = pipeline.log
-
-ACCESSIBILITY_SETTINGS = ("x-apple.systempreferences:com.apple.preference.security"
-                          "?Privacy_Accessibility")
-
-
-def osa(script: str) -> str:
-    r = subprocess.run(["osascript", "-e", script], capture_output=True, text=True)
-    return r.stdout.strip() if r.returncode == 0 else ""
-
-
-def ask_for_files() -> list:
-    types = ", ".join(f'"{ext[1:]}"' for ext in sorted(tparser.EXTENSIONS))
-    return osa(f'set picked to choose file with prompt "Choose transcripts" of type {{{types}}} '
-               'with multiple selections allowed\n'
-               'set out to ""\n'
-               'repeat with f in picked\n'
-               '  set out to out & POSIX path of f & linefeed\n'
-               'end repeat\n'
-               'return out').splitlines()
-
-
-def ask_for_folder(prompt: str = "Where transcripts arrive") -> str:
-    return osa(f'POSIX path of (choose folder with prompt "{prompt}")')
-
 
 class Controller:
     def __init__(self):
@@ -429,7 +405,7 @@ class Controller:
     @staticmethod
     def open_accessibility():
         """System Settings at the list that gives Meeting Notes the call's names."""
-        subprocess.run(["open", ACCESSIBILITY_SETTINGS], check=False)
+        desktop.open_accessibility_settings()
 
     def reveal(self, meeting: str) -> str:
         """Show the transcript in Finder. Returns why it could not, or ""."""
@@ -439,5 +415,5 @@ class Controller:
         src = Path(row["source"])
         if not src.exists():
             return f"The transcript is no longer at {src}"
-        subprocess.run(["open", "-R", str(src)], check=False)
+        desktop.reveal(src)
         return ""

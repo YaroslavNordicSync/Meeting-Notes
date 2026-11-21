@@ -15,6 +15,7 @@ import threading
 from datetime import datetime
 from pathlib import Path
 
+import desktop
 import paths
 import speakers
 from transcriber import Live
@@ -63,6 +64,8 @@ class Recorder:
         the helper is missing."""
         if self.recording:
             raise RuntimeError("already recording")
+        if not desktop.RECORDING:
+            raise RuntimeError(f"recording calls is {desktop.NOT_YET}")
         helper = paths.recorder_binary()
         if not helper.exists():
             raise RuntimeError(f"the recorder is not built ({helper})")

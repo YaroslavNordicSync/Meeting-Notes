@@ -17,6 +17,7 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 from markdown_it import MarkdownIt
 from markupsafe import Markup
 
+import desktop
 import paths
 
 log = logging.getLogger("pipeline")
@@ -40,17 +41,20 @@ def mail_mode() -> str:
 # ---------------------------------------------------------------- the account
 
 def _keyring():
-    """The macOS Keychain, or None if keyring cannot be used here.
+    """The system's password store (the Keychain on macOS), or None if keyring
+    cannot be used here.
 
-    The backend is chosen explicitly rather than by priority: keyring finds its
-    backends through entry points, and a py2app bundle does not carry those.
+    On macOS the backend is chosen explicitly rather than by priority: keyring
+    finds its backends through entry points, and a py2app bundle does not carry
+    those. Elsewhere keyring picks it (Credential Manager, Secret Service).
     """
     global _KEYRING
     if _KEYRING is None:
         try:
             import keyring
-            from keyring.backends import macOS
-            keyring.set_keyring(macOS.Keyring())
+            if desktop.MAC:
+                from keyring.backends import macOS
+                keyring.set_keyring(macOS.Keyring())
             _KEYRING = keyring
         except Exception as e:
             log.error("No Keychain available (%s: %s)", type(e).__name__, e)
@@ -196,6 +200,8 @@ def create_outlook_draft(subject: str, html: str, recipients: list) -> str:
     The script goes through a temp file because the email HTML is full of quotes
     and newlines that would not survive being passed as a command line argument.
     """
+    if not desktop.MAC:
+        raise RuntimeError(f"Outlook drafts are {desktop.NOT_YET}: choose SMTP in Settings")
     lines = [
         'tell application "Microsoft Outlook"',
         '  activate',

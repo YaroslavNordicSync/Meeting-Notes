@@ -22,6 +22,7 @@ from urllib.parse import parse_qs, unquote, urlparse
 
 import archive
 import controller
+import desktop
 import history
 import mailer
 import parser as tparser
@@ -278,13 +279,13 @@ class Handler(BaseHTTPRequestHandler):
     # Each of these returns what the page is told.
 
     def _pick(self, _body):
-        chosen = controller.ask_for_files()
+        chosen = desktop.ask_for_files(tparser.EXTENSIONS)
         if not chosen:
             return {"ok": False, "cancelled": True}
         return {"ok": True, **self.app.import_files(chosen)}
 
     def _pick_folder(self, _body):
-        folder = controller.ask_for_folder("Choose a folder of transcripts")
+        folder = desktop.ask_for_folder("Choose a folder of transcripts")
         if not folder:
             return {"ok": False, "cancelled": True}
         return {"ok": True, **self.app.import_files([folder])}
@@ -293,7 +294,7 @@ class Handler(BaseHTTPRequestHandler):
         return {"ok": True, **self.app.recheck_skipped()}
 
     def _folder(self, _body):
-        path = controller.ask_for_folder()
+        path = desktop.ask_for_folder()
         if not path:
             return {"ok": False, "cancelled": True}
         self.app.set_folder(path)

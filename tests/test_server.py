@@ -11,6 +11,7 @@ import json
 import pytest
 
 import controller
+import desktop
 import history
 import llm
 import mailer
@@ -187,12 +188,12 @@ def test_files_are_picked_in_a_dialog_the_server_opens(api, app, box, worker, mo
                                                        transcript):
     monkeypatch.setattr(llm, "summarize", fake_summarize)
     monkeypatch.setattr(llm, "ollama_up", lambda: True)
-    monkeypatch.setattr(controller, "ask_for_files", lambda: [])
+    monkeypatch.setattr(desktop, "ask_for_files", lambda extensions: [])
     assert api("POST", "/api/pick", {})[1] == {"ok": False, "cancelled": True}
 
     picked = [transcript(box.inbox, "picked.vtt"), box.inbox / "notes.txt"]
     picked[1].write_text("Just a line someone wrote down.")
-    monkeypatch.setattr(controller, "ask_for_files", lambda: [str(p) for p in picked])
+    monkeypatch.setattr(desktop, "ask_for_files", lambda extensions: [str(p) for p in picked])
     status, r = api("POST", "/api/pick", {})
 
     # Picked by hand, so even a file that is no transcript goes to the model.
@@ -217,7 +218,7 @@ def test_a_folder_of_transcripts_is_checked_file_by_file(api, box, worker, monke
     (folder / "invoice.docx").write_bytes(b"not a docx")
     (folder / "readme.md").write_text("# Read me\n\nInstall: run the script.\n")
     (folder / "photo.jpg").write_bytes(b"")
-    monkeypatch.setattr(controller, "ask_for_folder", lambda prompt: str(folder))
+    monkeypatch.setattr(desktop, "ask_for_folder", lambda prompt: str(folder))
 
     status, r = api("POST", "/api/pick/folder", {})
 
@@ -245,16 +246,16 @@ def test_files_turned_down_are_checked_again(api, box, worker, monkeypatch, tran
 
 
 def test_a_folder_is_chosen_in_a_dialog_too(api, app, temp_env, tmp_path, monkeypatch):
-    monkeypatch.setattr(controller, "ask_for_folder", lambda: str(tmp_path) + "/")
+    monkeypatch.setattr(desktop, "ask_for_folder", lambda: str(tmp_path) + "/")
     assert api("POST", "/api/folder", {}) == (200, {"ok": True})
     assert paths.setting("INBOX_DIR") == str(tmp_path)
 
 
 def test_a_meeting_is_reprocessed_and_revealed_by_its_hash(api, meeting, monkeypatch):
     opened = []
-    monkeypatch.setattr(controller.subprocess, "run", lambda cmd, **kw: opened.append(cmd))
+    monkeypatch.setattr(desktop, "reveal", opened.append)
     assert api("POST", f"/api/meeting/{meeting}/reveal", {}) == (200, {"ok": True, "error": ""})
-    assert opened[0][:2] == ["open", "-R"]
+    assert opened[0].name.endswith(".vtt")
 
     status, r = api("POST", f"/api/meeting/{meeting}/retry", {})
     assert (status, r["ok"], r["queued"]) == (200, True, True)
@@ -337,9 +338,8 @@ def test_a_voice_is_named_in_the_notes_and_the_transcript(api, meeting):
 
 
 def test_the_settings_button_opens_the_accessibility_list(api, monkeypatch):
-    import controller
     opened = []
-    monkeypatch.setattr(controller.subprocess, "run", lambda args, check: opened.append(args))
+    monkeypatch.setattr(desktop, "open_accessibility_settings", lambda: opened.append(1))
 
     assert api("POST", "/api/open/accessibility", {}) == (200, {"ok": True})
-    assert opened == [["open", controller.ACCESSIBILITY_SETTINGS]]
+    assert opened == [1]

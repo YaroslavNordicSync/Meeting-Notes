@@ -2,8 +2,12 @@
 app bundle the notifier falls back to osascript, which is replaced here."""
 from types import SimpleNamespace
 
-import menubar
-import notifications
+import pytest
+
+pytest.importorskip("rumps", reason="the menu bar and its notifications are macOS only")
+
+import menubar  # noqa: E402
+import notifications  # noqa: E402
 
 
 def test_outside_the_app_it_falls_back_to_a_plain_notification(monkeypatch):

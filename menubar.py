@@ -19,7 +19,9 @@ import menu
 import notifications
 import paths
 import pipeline
-from controller import Controller, ask_for_files, ask_for_folder
+import desktop
+import parser as tparser
+from controller import Controller
 
 ICON = paths.CODE / "assets" / "icon.png"
 ICON_PAUSED = paths.CODE / "assets" / "icon-paused.png"
@@ -220,7 +222,7 @@ class TranscriptApp(rumps.App):
         self.window.show()
 
     def pick_file(self, sender, _arg=None):
-        chosen = ask_for_files()
+        chosen = desktop.ask_for_files(tparser.EXTENSIONS)
         if not chosen:
             return
         # Queued, not refused, if the worker is busy — and if one meeting was
@@ -249,7 +251,7 @@ class TranscriptApp(rumps.App):
             notify("The transcript has moved", problem)
 
     def choose_folder(self, sender, _arg=None):
-        path = ask_for_folder()
+        path = desktop.ask_for_folder()
         if path:
             self.app.set_folder(path)
 

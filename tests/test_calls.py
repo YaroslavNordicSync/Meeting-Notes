@@ -32,6 +32,7 @@ def test_bundle_ids_become_the_call_apps_it_knows():
     assert calls.call_apps(["ru.keepcoder.Telegram", "local.meetingnotes.app"]) == set()
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="a fake helper script cannot be run on Windows")
 def test_the_watch_reports_what_started_and_what_ended(tmp_path, monkeypatch):
     steps = [[], ["com.microsoft.teams2.helper", "com.apple.Music"],
              ["com.microsoft.teams2.helper"], []]

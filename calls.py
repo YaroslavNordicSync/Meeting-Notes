@@ -10,6 +10,7 @@ import logging
 import subprocess
 import threading
 
+import desktop
 import paths
 
 log = logging.getLogger("pipeline")
@@ -43,6 +44,9 @@ class CallWatch:
         self.using = set()
 
     def start(self):
+        if not desktop.RECORDING:
+            log.warning("Call detection is off: it is %s", desktop.NOT_YET)
+            return
         helper = paths.recorder_binary()
         if not helper.exists():
             log.warning("Call detection is off: the recorder is not built (%s)", helper)
