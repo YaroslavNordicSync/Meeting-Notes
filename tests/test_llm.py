@@ -3,7 +3,7 @@ import json
 from types import SimpleNamespace
 
 import llm
-from helpers import wait_until
+from helpers import fake_program, wait_until
 
 SCHEMA = {"type": "object", "properties": {"title": {"type": "string"}}}
 
@@ -57,9 +57,8 @@ def test_an_ollama_the_app_started_is_stopped_again(tmp_path, monkeypatch):
     import subprocess
     import paths
     monkeypatch.setattr(paths, "DATA", tmp_path)
-    fake = tmp_path / "ollama"
-    fake.write_text("#!/bin/sh\necho serving\nexec sleep 60\n")
-    fake.chmod(0o755)
+    fake = fake_program(tmp_path / "ollama",
+                        "import time\nprint('serving', flush=True)\ntime.sleep(60)\n")
     monkeypatch.setattr(llm, "ollama_binary", lambda: str(fake))
     started = []
     real_popen = subprocess.Popen
@@ -85,9 +84,7 @@ def test_once_the_app_quits_a_cut_off_job_cannot_wake_a_new_ollama(tmp_path, mon
     import subprocess
     import paths
     monkeypatch.setattr(paths, "DATA", tmp_path)
-    fake = tmp_path / "ollama"
-    fake.write_text("#!/bin/sh\nexec sleep 60\n")
-    fake.chmod(0o755)
+    fake = fake_program(tmp_path / "ollama", "import time\ntime.sleep(60)\n")
     monkeypatch.setattr(llm, "ollama_binary", lambda: str(fake))
     started = []
     real_popen = subprocess.Popen

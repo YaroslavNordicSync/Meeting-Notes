@@ -1,4 +1,5 @@
 """Shared bits for the suite. Not collected — it holds no tests."""
+import sys
 import threading
 import time
 from pathlib import Path
@@ -42,6 +43,20 @@ def fake_summarize(turns, meta, model=None, progress_cb=None):
         progress_cb("reduce", 1, 1)
     return dict(NOTES, title=meta["source"], participants=[t[0] for t in turns],
                 _meta={"model": "fake-model"})
+
+
+def fake_program(path: Path, code: str) -> Path:
+    """An executable that runs `code` in Python: a script with a shebang, or on
+    Windows, which runs no shebangs, a .cmd beside it. Returns what to run."""
+    script = path.with_suffix(".py")
+    script.write_text(code, encoding="utf-8")
+    if sys.platform == "win32":
+        program = path.with_suffix(".cmd")
+        program.write_text(f'@"{sys.executable}" "{script}" %*\n', encoding="utf-8")
+        return program
+    path.write_text(f"#!{sys.executable}\n{code}", encoding="utf-8")
+    path.chmod(0o755)
+    return path
 
 
 def wait_until(condition, timeout=15.0, step=0.02) -> bool:

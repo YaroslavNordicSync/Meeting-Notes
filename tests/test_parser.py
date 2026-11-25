@@ -202,8 +202,9 @@ ACCEPTED = [
                              encoding="utf-16"), [A, B], ["Коллеги, начнём."],
         id="txt-utf16-from-windows"),
     pytest.param(
-        lambda d: build_text(d, "vtt-as-txt", build_vtt(d, "v", DIALOGUE).read_text()
-                             .splitlines()), [A, B], ["Коллеги, начнём."],
+        lambda d: build_text(d, "vtt-as-txt", build_vtt(d, "v", DIALOGUE)
+                             .read_text(encoding="utf-8").splitlines()),
+        [A, B], ["Коллеги, начнём."],
         id="txt-holding-a-vtt"),
 ]
 
@@ -341,7 +342,7 @@ def test_files_in_a_folder_leave_out_hidden_lock_and_other_files(tmp_path):
                  "~$f.docx", ".hidden/g.vtt"]:
         (tmp_path / name).parent.mkdir(parents=True, exist_ok=True)
         (tmp_path / name).write_text("x")
-    found = [str(p.relative_to(tmp_path)) for p in tparser.files_in(tmp_path)]
+    found = [p.relative_to(tmp_path).as_posix() for p in tparser.files_in(tmp_path)]
     assert found == ["a.vtt", "d.md", "sub/b.docx", "sub/c.SRT"]
 
 

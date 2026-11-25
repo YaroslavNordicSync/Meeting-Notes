@@ -6,6 +6,11 @@ its commit message; open problems live in the project note, not here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follow the commit
 messages: `v0.MINOR.PATCH`, MINOR for a feature or substantial change, PATCH for a fix.
 
+## v0.18.1 — 2026-11-25
+### Fixed
+- The test suite passes on Windows: the fake Ollama is a Python program instead of a shell
+  script, paths are compared with either separator, and a test file is read as UTF-8.
+
 ## v0.18.0 — 2026-11-20
 ### Changed
 - Everything that differs between macOS, Windows and Linux is in `desktop.py`: the data

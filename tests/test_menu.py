@@ -17,6 +17,9 @@ FACTS = {
     "meetings": [],
 }
 
+# How the menu shortens the watched folder, with this system's separator.
+WATCHING = f"Watching: {Path('~/Downloads')}"
+
 MEETING = {"hash": "a" * 64, "title": "Sprint review", "date": "2026-09-23",
            "status": "ready", "notes": "/notes/sprint.json",
            "source": str(Path.home() / "Downloads" / "sprint.vtt"), "error": ""}
@@ -36,7 +39,7 @@ def test_the_status_lines_say_what_is_going_on():
     assert menu.status_lines(FACTS) == [
         "● Ollama: running",
         "Model: qwen3.5:9b",
-        "Watching: ~/Downloads",
+        WATCHING,
         "Now: Idle",
     ]
 
@@ -70,7 +73,7 @@ def test_the_now_line_follows_the_worker():
 
 def test_the_dropdown_is_in_the_agreed_order():
     assert titles(menu.tree(FACTS)) == [
-        "● Ollama: running", "Model: qwen3.5:9b", "Watching: ~/Downloads", "Now: Idle",
+        "● Ollama: running", "Model: qwen3.5:9b", WATCHING, "Now: Idle",
         "-",
         "Open Meeting Notes", "● Record the call", "Recent meetings", "Process files…",
         "Watch the folder",
