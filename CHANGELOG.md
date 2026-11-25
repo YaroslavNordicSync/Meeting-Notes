@@ -6,6 +6,15 @@ its commit message; open problems live in the project note, not here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follow the commit
 messages: `v0.MINOR.PATCH`, MINOR for a feature or substantial change, PATCH for a fix.
 
+## v0.20.0 — 2026-11-25
+### Added
+- Recording a call on Windows: `winrecorder.py` records the speakers (WASAPI loopback) and the
+  microphone into the same `system.wav` / `mic.wav` as the Mac's helper, so the live transcript,
+  echo removal, speakers and notes work unchanged.
+- Plugging in headphones moves the recording to the new default devices within a couple of
+  seconds; the gap is filled with silence so both files stay in step.
+- Noticing a call and Teams names are still macOS only.
+
 ## v0.19.1 — 2026-11-25
 ### Fixed
 - `run.ps1` no longer stops at "python.exe : Traceback" on a first run in Windows PowerShell:

@@ -150,8 +150,11 @@ def recordings() -> Path:
 
 
 def recorder_binary() -> Path:
-    """The Swift helper that records a call. Inside the bundle it sits next to
-    the app's own executable; from source, build.sh / run.sh compile it into build/."""
+    """The helper that records a call. On Windows it is winrecorder.py. The
+    Swift one, inside the bundle, sits next to the app's own executable; from
+    source, build.sh / run.sh compile it into build/."""
+    if desktop.WINDOWS:
+        return CODE / "winrecorder.py"
     if BUNDLED:
         return Path(sys.executable).resolve().parent / "mn-recorder"
     return CODE / "build" / "mn-recorder"

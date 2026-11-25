@@ -48,10 +48,11 @@ class FakeOllama:
 def no_real_recorder(monkeypatch, tmp_path):
     """No test can start the real Swift helper — on a Mac where it is built, that
     would record. The recorder is somewhere that does not exist unless a test
-    puts a fake there, and recording counts as supported on every system, so
-    its logic is tested everywhere with fakes."""
+    puts a fake there, and recording and noticing a call count as supported on
+    every system, so their logic is tested everywhere with fakes."""
     monkeypatch.setattr(paths, "recorder_binary", lambda: tmp_path / "no-real-recorder")
     monkeypatch.setattr(desktop, "RECORDING", True)
+    monkeypatch.setattr(desktop, "NOTICING_CALLS", True)
 
 
 @pytest.fixture(autouse=True)

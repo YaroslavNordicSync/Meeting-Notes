@@ -44,7 +44,7 @@ class CallWatch:
         self.using = set()
 
     def start(self):
-        if not desktop.RECORDING:
+        if not desktop.NOTICING_CALLS:
             log.warning("Call detection is off: it is %s", desktop.NOT_YET)
             return
         helper = paths.recorder_binary()

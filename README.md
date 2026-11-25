@@ -36,9 +36,18 @@ Python 3.11, Node.js and Ollama installed:
     powershell -ExecutionPolicy Bypass -File run.ps1
 
 It sets up the virtualenv, builds the window and offers to download the model.
-Not there yet, and saying so instead of failing: recording and noticing a call
-(the recorder is a macOS helper), Outlook drafts, and a built `.exe`. Linux
-may run `tray.py` too, but nobody has tried it.
+
+Recording a call works on Windows too: `winrecorder.py` takes the place of the
+Swift helper, with the same files and the same events, so everything after it —
+the live transcript, echo removal, speakers, notes — is shared. The other people
+come from a WASAPI loopback of the default speakers, me from the default
+microphone; plugging in headphones moves both to the new devices within a couple
+of seconds, the gap filled with silence. It needs whisper.cpp's `whisper-server`
+on the PATH (`whisper-bin-x64.zip` from its GitHub releases).
+
+Not there yet, and saying so instead of failing: noticing a call and offering to
+record it, Teams names, Outlook drafts, and a built `.exe`. Linux may run
+`tray.py` too, without recording, but nobody has tried it.
 
 ## Install
 
@@ -686,7 +695,7 @@ assets/     make_icon.py          icons, drawn at build time
 examples/                         a sample transcript and its notes
 build.sh    setup.py              produces Meeting Notes.app
 run.sh                            run from source, no build
-run.ps1  tray.py                   the same on Windows: window + tray icon
+run.ps1  tray.py  winrecorder.py   the same on Windows: window, tray icon, recorder
 tests/                            the fixture suite (pytest)
 requirements-dev.txt  pyproject.toml   pytest and ruff, and their settings
 ```

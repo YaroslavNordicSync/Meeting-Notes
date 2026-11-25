@@ -23,7 +23,7 @@ if (-not (Test-Path $Py)) {
 }
 
 # --- dependencies -------------------------------------------------------
-& $Py -c "import webview, pystray, watchdog, jinja2, dotenv, docx, requests, keyring" 2>$null
+& $Py -c "import webview, pystray, soundcard, watchdog, jinja2, dotenv, docx, requests, keyring" 2>$null
 if ($LASTEXITCODE -ne 0) {
     Say "Installing dependencies"
     & $Py -m pip install -q --upgrade pip
@@ -50,6 +50,14 @@ if (-not $built -or ($sources | Where-Object { $_.LastWriteTime -gt $built.LastW
 # Not started here: the app wakes it when a meeting needs summarising.
 $found = & $Py -c "import desktop; print(desktop.find('ollama'))"
 if (-not $found) { Die "Ollama not found. Install it from ollama.com" }
+
+# --- speech -------------------------------------------------------------
+# Only recording a call needs it; the speech model itself downloads on the first.
+$whisper = & $Py -c "import desktop; print(desktop.find('whisper-server'))"
+if (-not $whisper) {
+    Write-Host "    whisper-server not found: recording a call needs it. Unzip whisper-bin-x64.zip"
+    Write-Host "    from github.com/ggml-org/whisper.cpp/releases and add that folder to PATH."
+}
 
 # --- model --------------------------------------------------------------
 $Model = & $Py -c "import llm; print(llm.MODEL)"

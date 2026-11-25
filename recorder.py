@@ -3,7 +3,7 @@ this starts it, listens to what it says, stops it, and runs the live
 transcription (`transcriber.Live`) alongside.
 
 A recording is a folder in DATA/recordings named by when it started, holding
-system.wav (everything the Mac played: the other people), mic.wav (me),
+system.wav (everything the computer played: the other people), mic.wav (me),
 meta.json (formats and the start time), speaking.json (when Teams showed whom as
 speaking, if it could be read) and, once it stops, the transcript as
 "Call <folder>.vtt".
@@ -11,6 +11,7 @@ speaking, if it could be read) and, once it stops, the transcript as
 import json
 import logging
 import subprocess
+import sys
 import threading
 from datetime import datetime
 from pathlib import Path
@@ -28,6 +29,11 @@ NO_NAMES = ("names need the Accessibility permission: System Settings > Privacy 
 # A microphone always hears something; this many seconds of exact zero is a
 # broken stream, not a quiet room.
 DEAD_MIC_SECONDS = 5
+
+
+def command(helper: Path) -> list:
+    """How to run the helper: Windows' is a Python script, run by this Python."""
+    return [sys.executable, str(helper)] if helper.suffix == ".py" else [str(helper)]
 
 
 class Recorder:
@@ -74,7 +80,7 @@ class Recorder:
         self.folder = folder
         with self._lock:
             self._state = dict(self._idle(), recording=True, folder=str(folder))
-        self.proc = subprocess.Popen([str(helper), str(folder), speakers.SPEAKING],
+        self.proc = subprocess.Popen([*command(helper), str(folder), speakers.SPEAKING],
                                      stdin=subprocess.PIPE,
                                      stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
                                      text=True, bufsize=1)
@@ -141,6 +147,9 @@ class Recorder:
                 with self._lock:            # it is back: an old warning about it is over
                     if self._state["warning"].startswith("the microphone"):
                         self._state["warning"] = ""
+            elif kind == "system_changed":
+                log.info("Recorder: the speakers changed; %.1f s of silence filled in",
+                         event.get("gap", 0.0))
             elif kind == "warning":
                 self._warn(folder, event.get("what", ""))
             elif kind == "error":

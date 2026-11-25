@@ -13,7 +13,8 @@ def as_system(monkeypatch, name):
     monkeypatch.setattr(desktop, "MAC", name == "mac")
     monkeypatch.setattr(desktop, "WINDOWS", name == "windows")
     monkeypatch.setattr(desktop, "LINUX", name == "linux")
-    monkeypatch.setattr(desktop, "RECORDING", name == "mac")
+    monkeypatch.setattr(desktop, "RECORDING", name in ("mac", "windows"))
+    monkeypatch.setattr(desktop, "NOTICING_CALLS", name == "mac")
 
 
 def test_the_data_folder_is_where_each_system_keeps_it(monkeypatch, tmp_path):
@@ -59,6 +60,7 @@ def test_what_only_macos_has_yet_says_so_elsewhere(monkeypatch, temp_env):
         desktop.ask_for_folder()
     with pytest.raises(RuntimeError, match="choose SMTP"):
         mailer.create_outlook_draft("s", "<p>x</p>", ["a@b.c"])
+    as_system(monkeypatch, "linux")
     with pytest.raises(RuntimeError, match="recording calls is not available"):
         recorder.Recorder().start()
 

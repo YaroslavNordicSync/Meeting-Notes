@@ -2,9 +2,9 @@
 
 The rest of the code asks this module and never looks at the platform itself.
 macOS is the whole app; on Windows and Linux the core runs — watching a folder,
-notes, email over SMTP, the window and its pickers — and what is not built for
-them yet says so instead of failing: recording a call, noticing one, Outlook
-drafts.
+notes, email over SMTP, the window and its pickers — and Windows records a call
+too. What is not built for them yet says so instead of failing: noticing a
+call, recording on Linux, Outlook drafts.
 """
 import os
 import shutil
@@ -16,8 +16,10 @@ MAC = sys.platform == "darwin"
 WINDOWS = sys.platform == "win32"
 LINUX = not MAC and not WINDOWS
 
-# The Swift helper records a call and notices one; Windows and Linux have none yet.
-RECORDING = MAC
+# Recording a call: the Swift helper on macOS, winrecorder.py on Windows.
+# Noticing one (which app holds the microphone) is the Swift helper's alone so far.
+RECORDING = MAC or WINDOWS
+NOTICING_CALLS = MAC
 NOT_YET = "not available on this system yet"
 
 ACCESSIBILITY_SETTINGS = ("x-apple.systempreferences:com.apple.preference.security"
