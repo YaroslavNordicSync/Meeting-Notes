@@ -2,9 +2,9 @@
 
 The rest of the code asks this module and never looks at the platform itself.
 macOS is the whole app; on Windows and Linux the core runs — watching a folder,
-notes, email over SMTP, the window's server — and what is not built for them
-yet says so instead of failing: recording a call, noticing one, Outlook drafts,
-the file pickers.
+notes, email over SMTP, the window and its pickers — and what is not built for
+them yet says so instead of failing: recording a call, noticing one, Outlook
+drafts.
 """
 import os
 import shutil
@@ -73,6 +73,10 @@ def open_accessibility_settings():
 
 # ------------------------------------------------------------------ file pickers
 
+# Elsewhere the dialogs belong to the window's toolkit: the app sets this to an
+# object with files(extensions) and folder(prompt) once its window is up.
+PICKER = None
+
 def _osa(script: str) -> str:
     r = subprocess.run(["osascript", "-e", script], capture_output=True, text=True)
     return r.stdout.strip() if r.returncode == 0 else ""
@@ -81,7 +85,9 @@ def _osa(script: str) -> str:
 def ask_for_files(extensions) -> list:
     """Transcripts chosen in the system's dialog; [] when it was cancelled."""
     if not MAC:
-        raise RuntimeError(f"Choosing files is {NOT_YET}: drop them on the window instead")
+        if PICKER is None:
+            raise RuntimeError(f"Choosing files is {NOT_YET}: drop them on the window instead")
+        return PICKER.files(extensions)
     types = ", ".join(f'"{ext[1:]}"' for ext in sorted(extensions))
     return _osa(f'set picked to choose file with prompt "Choose transcripts" of type {{{types}}} '
                 'with multiple selections allowed\n'
@@ -95,5 +101,7 @@ def ask_for_files(extensions) -> list:
 def ask_for_folder(prompt: str = "Where transcripts arrive") -> str:
     """A folder chosen in the system's dialog; "" when it was cancelled."""
     if not MAC:
-        raise RuntimeError(f"Choosing a folder is {NOT_YET}")
+        if PICKER is None:
+            raise RuntimeError(f"Choosing a folder is {NOT_YET}")
+        return PICKER.folder(prompt)
     return _osa(f'POSIX path of (choose folder with prompt "{prompt}")')

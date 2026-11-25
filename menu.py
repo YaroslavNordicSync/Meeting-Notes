@@ -4,6 +4,7 @@ rumps is handed the result of `tree()` and nothing else. Keeping the titles, the
 marks and the order in a plain function is what makes the part that is easy to get
 wrong testable without a menu bar — see tests/test_menu.py.
 """
+import json
 import time
 from dataclasses import dataclass
 from datetime import datetime
@@ -61,6 +62,23 @@ def job_line(job: dict) -> str:
     stage = stage.format(i=job.get("i") or 0, n=job.get("n") or 0)
     waiting = f" · {queued} waiting" if queued else ""
     return f"{job.get('file') or 'a meeting'} — {stage}{waiting}"
+
+
+def job_notice(kind: str, target, payload):
+    """The notification for something the worker finished, as (title, message),
+    or None when it is not worth one."""
+    if kind == "done":
+        out = Path(payload)
+        try:
+            title = json.loads(out.read_text(encoding="utf-8")).get("title") or out.stem
+        except Exception:
+            title = out.stem
+        return "Notes ready", f"{title} — open it to read and send"
+    if kind == "error":
+        return "Could not process", f"{Path(str(target)).name}: {payload}"
+    if kind == "pull":
+        return "Model downloaded", Path(str(target)).name
+    return None
 
 
 def ollama_line(facts: dict) -> str:

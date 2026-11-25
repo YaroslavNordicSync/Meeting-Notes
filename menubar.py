@@ -6,9 +6,7 @@ dropdown is the quick view of the same thing — status at the top, recent
 meetings, the settings — and keeps the app running when the window is closed.
 Both act through one `Controller`.
 """
-import json
 import threading
-from pathlib import Path
 
 import rumps
 from PyObjCTools import AppHelper
@@ -173,18 +171,9 @@ class TranscriptApp(rumps.App):
         on_main(self._job_event, kind, target, payload)
 
     def _job_event(self, kind, target, payload):
-        name = Path(str(target)).name
-        if kind == "done":
-            out = Path(payload)
-            try:
-                title = json.loads(out.read_text(encoding="utf-8")).get("title") or out.stem
-            except Exception:
-                title = out.stem
-            notify("Notes ready", f"{title} — open it from the menu to read and send")
-        elif kind == "error":
-            notify("Could not process", f"{name}: {payload}")
-        elif kind == "pull":
-            notify("Model downloaded", name)
+        notice = menu.job_notice(kind, target, payload)
+        if notice:
+            notify(*notice)
         self.rebuild()
 
     # ------------------------------------------------------------ a call noticed

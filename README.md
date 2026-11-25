@@ -25,9 +25,20 @@ Notes` on Windows, `~/.local/share/meeting-notes` on Linux), where Ollama and
 whisper-server are found, showing a file in the file manager, the password store
 (keyring picks Credential Manager or Secret Service). The core runs there: the
 watcher, the notes, email over SMTP and the window's server, and the tests pass
-on all three systems in CI (`.github/workflows/tests.yml`). Not there yet, and
-saying so instead of failing: recording and noticing a call (the recorder is a
-macOS helper), Outlook drafts, the file pickers, the window and menu bar shell.
+on all three systems in CI (`.github/workflows/tests.yml`).
+
+On Windows the app runs from source: `tray.py` is the same window (pywebview,
+in Edge WebView2) with an icon in the tray instead of the menu bar. Closing the
+window hides it; Quit is in the tray icon's menu. Transcripts come in through
+the watched folder, the pickers or a drop on the window. To start it, with
+Python 3.11, Node.js and Ollama installed:
+
+    powershell -ExecutionPolicy Bypass -File run.ps1
+
+It sets up the virtualenv, builds the window and offers to download the model.
+Not there yet, and saying so instead of failing: recording and noticing a call
+(the recorder is a macOS helper), Outlook drafts, and a built `.exe`. Linux
+may run `tray.py` too, but nobody has tried it.
 
 ## Install
 
@@ -675,6 +686,7 @@ assets/     make_icon.py          icons, drawn at build time
 examples/                         a sample transcript and its notes
 build.sh    setup.py              produces Meeting Notes.app
 run.sh                            run from source, no build
+run.ps1  tray.py                   the same on Windows: window + tray icon
 tests/                            the fixture suite (pytest)
 requirements-dev.txt  pyproject.toml   pytest and ruff, and their settings
 ```

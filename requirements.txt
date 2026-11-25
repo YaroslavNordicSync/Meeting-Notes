@@ -7,6 +7,8 @@ keyring>=25.0                  # the mail password, in the Keychain (or the syst
 rumps>=0.4; sys_platform == "darwin"                 # macOS menu bar app
 pyobjc-framework-WebKit>=10; sys_platform == "darwin"  # the window that hosts the UI
 pyobjc-framework-UserNotifications>=10; sys_platform == "darwin"  # notifications with buttons
+pywebview>=6.0; sys_platform != "darwin"            # the window elsewhere (Edge WebView2 on Windows)
+pystray>=0.19; sys_platform != "darwin"             # the tray icon elsewhere
 sherpa-onnx>=2.0               # telling the voices of a recorded call apart
 markdown-it-py>=3.0            # the summary is markdown, in the email too
 livekit==1.2.1                 # WebRTC's echo canceller, for the microphone after a call

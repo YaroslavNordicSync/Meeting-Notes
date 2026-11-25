@@ -61,3 +61,22 @@ def test_what_only_macos_has_yet_says_so_elsewhere(monkeypatch, temp_env):
         mailer.create_outlook_draft("s", "<p>x</p>", ["a@b.c"])
     with pytest.raises(RuntimeError, match="recording calls is not available"):
         recorder.Recorder().start()
+
+
+def test_elsewhere_the_windows_toolkit_draws_the_pickers(monkeypatch):
+    as_system(monkeypatch, "windows")
+    asked = []
+
+    class Picker:
+        def files(self, extensions):
+            asked.append(sorted(extensions))
+            return ["C:\\a.vtt"]
+
+        def folder(self, prompt):
+            asked.append(prompt)
+            return ""                   # cancelled
+
+    monkeypatch.setattr(desktop, "PICKER", Picker())
+    assert desktop.ask_for_files({".vtt", ".docx"}) == ["C:\\a.vtt"]
+    assert desktop.ask_for_folder("Where") == ""
+    assert asked == [[".docx", ".vtt"], "Where"]

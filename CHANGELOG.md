@@ -6,6 +6,14 @@ its commit message; open problems live in the project note, not here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follow the commit
 messages: `v0.MINOR.PATCH`, MINOR for a feature or substantial change, PATCH for a fix.
 
+## v0.19.0 — 2026-11-25
+### Added
+- Meeting Notes runs on Windows from source: `run.ps1` sets it up and starts `tray.py`, the
+  same window (Edge WebView2, through pywebview) with an icon in the tray.
+- On Windows: closing the window hides it, Quit is in the tray menu, files can be picked or
+  dropped on the window, and finished notes and errors show as Windows notifications.
+- Not on Windows yet: recording a call, Outlook drafts, a built `.exe`.
+
 ## v0.18.1 — 2026-11-25
 ### Fixed
 - The test suite passes on Windows: the fake Ollama is a Python program instead of a shell
