@@ -24,6 +24,7 @@ import subprocess
 import threading
 import time
 import wave
+import zipfile
 from array import array
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
@@ -42,6 +43,9 @@ MODEL_NAME = "ggml-large-v3-turbo-q5_0.bin"
 MODEL_URL = f"https://huggingface.co/ggerganov/whisper.cpp/resolve/main/{MODEL_NAME}"
 VAD_NAME = "ggml-silero-v5.1.2.bin"
 VAD_URL = f"https://huggingface.co/ggml-org/whisper-vad/resolve/main/{VAD_NAME}"
+# On Windows the app fetches whisper.cpp itself: its own build, server and DLLs.
+WINDOWS_BUILD = ("https://github.com/ggml-org/whisper.cpp/releases/download/b5907/"
+                 "whisper-bin-x64.zip")
 WHO = {"me": "Me", "them": "Them"}
 
 
@@ -243,9 +247,34 @@ def vad_path() -> Path:
     return model_path().parent / VAD_NAME
 
 
+def own_server() -> Path:
+    """Where the app keeps the whisper.cpp it downloaded (Windows)."""
+    return paths.DATA / "whisper" / "whisper-server.exe"
+
+
 def server_binary() -> str:
     """whisper.cpp's server, or "" when it is not installed."""
-    return desktop.find("whisper-server")
+    return desktop.find("whisper-server") or (str(own_server()) if own_server().exists() else "")
+
+
+def download_server(status=lambda text: None) -> str:
+    """Fetch whisper.cpp's Windows build into the data folder, keeping only what
+    its server needs to run: whisper-server.exe and the DLLs beside it."""
+    folder = own_server().parent
+    archive = folder / "whisper-bin-x64.zip"
+    log.info("Downloading whisper.cpp")
+    download(WINDOWS_BUILD, archive, lambda done, total: status(
+        f"Downloading whisper.cpp — {done >> 20}/{total >> 20} MB"))
+    with zipfile.ZipFile(archive) as z:
+        for member in z.infolist():
+            name = Path(member.filename).name
+            if not member.is_dir() and (name.lower().endswith(".dll")
+                                        or name == own_server().name):
+                (folder / name).write_bytes(z.read(member))
+    archive.unlink()
+    if not own_server().exists():
+        raise RuntimeError("the whisper.cpp download has no whisper-server.exe")
+    return str(own_server())
 
 
 def download(url: str, dest: Path, progress=None):
@@ -292,8 +321,11 @@ class WhisperServer:
 
     def start(self, status=lambda text: None):
         binary = server_binary()
+        if not binary and desktop.WINDOWS:
+            binary = download_server(status)
         if not binary:
-            raise RuntimeError("whisper.cpp is not installed. Install it: brew install whisper-cpp")
+            raise RuntimeError("whisper.cpp is not installed. Install it: "
+                               + desktop.install_hint("whisper-server"))
         for url, dest in ((MODEL_URL, model_path()), (VAD_URL, vad_path())):
             if not dest.exists():
                 log.info("Downloading %s", dest.name)

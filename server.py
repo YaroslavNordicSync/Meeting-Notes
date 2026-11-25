@@ -60,6 +60,9 @@ def state(app: controller.Controller) -> dict:
         "call": facts["call"],
         "call_detect": facts["call_detect"],
         "my_name": paths.setting("MY_NAME"),
+        "mic": paths.setting("MIC"),
+        "notices_calls": desktop.NOTICING_CALLS,
+        "ollama_install": desktop.install_hint("ollama"),
         "recordings": app.lone_recordings(),
         "archive": archive.entries(),
         "archive_days": archive.days(),
@@ -160,6 +163,8 @@ class Handler(BaseHTTPRequestHandler):
 
         if path == "/api/state":
             return self._json(state(self.app))
+        if path == "/api/mics":
+            return self._json({"mics": self.app.microphones()})
         if path == "/api/live":
             return self._json(self._live(parse_qs(urlparse(self.path).query)))
         m = RE_MEETING.match(path)
@@ -302,13 +307,14 @@ class Handler(BaseHTTPRequestHandler):
 
     def _settings(self, body):
         """One or more of: watching, mail_mode, recipients, archive_days,
-        call_detect, my_name."""
+        call_detect, my_name, mic."""
         setters = {"watching": lambda v: self.app.set_watching(bool(v)),
                    "mail_mode": self.app.set_mail_mode,
                    "recipients": self.app.set_recipients,
                    "archive_days": self.app.set_archive_days,
                    "call_detect": lambda v: self.app.set_call_detect(bool(v)),
-                   "my_name": self.app.set_my_name}
+                   "my_name": self.app.set_my_name,
+                   "mic": self.app.set_mic}
         unknown = set(body) - set(setters)
         if unknown:
             raise KeyError(", ".join(sorted(unknown)))

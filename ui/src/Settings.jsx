@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { api, lines, shortPath } from "./api.js";
 
 const MAIL_MODES = [["outlook_draft", "Draft in Outlook"], ["smtp", "Send over SMTP"]];
@@ -54,7 +54,7 @@ export default function Settings({ state, refresh, say }) {
 
       <Group title="Model" hint={state.ollama_installed
         ? "Writes the notes, locally through Ollama. Ollama runs only while there is a meeting to summarise, then gives the memory back."
-        : "Ollama is not installed. Install it with: brew install ollama"}>
+        : `Ollama is not installed. Install it: ${state.ollama_install}`}>
         <div className="inline">
           <code className="path">{state.model}</code>
           {state.model_ready
@@ -77,14 +77,16 @@ export default function Settings({ state, refresh, say }) {
 
       <MyName state={state} change={change} />
 
-      <Group title="Calls" hint="When Teams, Zoom or a browser starts using the microphone, offer to record the call: a notification, and a note above the record button. It never records by itself.">
+      <Microphone state={state} change={change} />
+
+      {state.notices_calls && <Group title="Calls" hint="When Teams, Zoom or a browser starts using the microphone, offer to record the call: a notification, and a note above the record button. It never records by itself.">
         <label className="switch">
           <input type="checkbox" checked={state.call_detect}
                  onChange={(e) => change({ call_detect: e.target.checked })} />
           <span className="knob" />
           Offer to record calls
         </label>
-      </Group>
+      </Group>}
 
       <Group title="Deleted meetings" hint="A deleted meeting — its notes and its recording — is kept this long, then removed for good. Until then it can be restored.">
         <div className="segments">
@@ -166,6 +168,25 @@ function MyName({ state, change }) {
                onKeyDown={(e) => e.key === "Enter" && change({ my_name: name }, "Name saved")} />
         <button onClick={() => change({ my_name: name }, "Name saved")}>Save</button>
       </div>
+    </Group>
+  );
+}
+
+// Only where the recorder can be told which one: on a Mac it takes the current
+// input. Asked once, as the page opens: listing them asks the sound system.
+function Microphone({ state, change }) {
+  const [mics, setMics] = useState(null);
+  useEffect(() => { api("/api/mics").then((r) => setMics(r.mics)).catch(() => {}); }, []);
+  if (!mics) return null;
+  const missing = state.mic && !mics.includes(state.mic);
+  return (
+    <Group title="Microphone" hint="What a recorded call hears you through. A chosen one that is not connected gives way to the system's default until it is back.">
+      <select value={state.mic} style={{ maxWidth: 360 }}
+              onChange={(e) => change({ mic: e.target.value }, "Microphone saved")}>
+        <option value="">System default</option>
+        {missing && <option value={state.mic}>{state.mic} (not connected)</option>}
+        {mics.map((name) => <option key={name} value={name}>{name}</option>)}
+      </select>
     </Group>
   );
 }

@@ -51,14 +51,6 @@ if (-not $built -or ($sources | Where-Object { $_.LastWriteTime -gt $built.LastW
 $found = & $Py -c "import desktop; print(desktop.find('ollama'))"
 if (-not $found) { Die "Ollama not found. Install it from ollama.com" }
 
-# --- speech -------------------------------------------------------------
-# Only recording a call needs it; the speech model itself downloads on the first.
-$whisper = & $Py -c "import desktop; print(desktop.find('whisper-server'))"
-if (-not $whisper) {
-    Write-Host "    whisper-server not found: recording a call needs it. Unzip whisper-bin-x64.zip"
-    Write-Host "    from github.com/ggml-org/whisper.cpp/releases and add that folder to PATH."
-}
-
 # --- model --------------------------------------------------------------
 $Model = & $Py -c "import llm; print(llm.MODEL)"
 & $Py -c "import llm, sys; sys.exit(0 if llm.model_on_disk('$Model') else 1)"

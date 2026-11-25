@@ -321,3 +321,27 @@ def test_a_piece_that_crashes_the_speech_model_is_silence_and_the_model_restarts
 
     assert heard == Heard("", "english")
     assert calls == ["stop", "start"]
+
+
+def test_on_windows_whisper_cpp_is_fetched_with_only_its_server_and_dlls(tmp_path, monkeypatch):
+    import io
+    import zipfile
+    import paths
+    monkeypatch.setattr(paths, "DATA", tmp_path)
+
+    def fake_download(url, dest, progress=None):
+        assert url == transcriber.WINDOWS_BUILD
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w") as z:
+            for name in ("Release/whisper-server.exe", "Release/ggml.dll",
+                         "Release/ggml-cpu-haswell.dll", "Release/bench.exe", "Release/"):
+                z.writestr(name, b"" if name.endswith("/") else name.encode())
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_bytes(buf.getvalue())
+
+    monkeypatch.setattr(transcriber, "download", fake_download)
+    assert transcriber.download_server() == str(tmp_path / "whisper" / "whisper-server.exe")
+    assert sorted(p.name for p in (tmp_path / "whisper").iterdir()) == [
+        "ggml-cpu-haswell.dll", "ggml.dll", "whisper-server.exe"]
+    monkeypatch.setattr(transcriber.desktop, "find", lambda _program: "")    # not on the PATH
+    assert transcriber.server_binary() == str(tmp_path / "whisper" / "whisper-server.exe")

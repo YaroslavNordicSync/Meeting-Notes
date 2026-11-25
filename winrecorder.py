@@ -1,10 +1,12 @@
 """The call recorder on Windows: what recorder/main.swift is on macOS.
 
     python winrecorder.py <folder> [<speaking pattern>]
+    python winrecorder.py --list          the microphones, by name, as JSON
 
 The other people come from a WASAPI loopback of the default speakers (whatever
-Windows plays), me from the default microphone, through the `soundcard`
-library. Each goes to its own file, <folder>/system.wav and <folder>/mic.wav,
+Windows plays), me from the microphone chosen in the settings while it is
+connected (its name in MEETING_NOTES_MIC), else Windows' default one, through
+the `soundcard` library. Each goes to its own file, <folder>/system.wav and <folder>/mic.wav,
 16 kHz mono 16-bit, and Python reads them while they grow, as on macOS.
 
 It speaks the Swift helper's language — one JSON object a line on stdout,
@@ -17,6 +19,7 @@ files stay in step ("mic_changed", or "system_changed" for the speakers).
 The speaking pattern (Teams names) is accepted and not used yet.
 """
 import json
+import os
 import sys
 import threading
 import time
@@ -163,13 +166,23 @@ class Speakers:
 
 
 class Microphone:
+    """The chosen microphone while it is connected; Windows' default otherwise."""
+
+    def __init__(self, chosen: str = ""):
+        self.chosen = chosen
+
     def default(self):
         import soundcard
-        mic = soundcard.default_microphone()
+        mic = next((m for m in soundcard.all_microphones() if m.name == self.chosen), None)
+        mic = mic or soundcard.default_microphone()
         return mic.id, mic
 
 
 def main(argv) -> int:
+    if argv[1:] == ["--list"]:
+        import soundcard
+        print(json.dumps([m.name for m in soundcard.all_microphones()]))
+        return 0
     if len(argv) < 2:
         print("usage: winrecorder.py <folder> [<speaking pattern>]", file=sys.stderr)
         return 2
@@ -183,7 +196,7 @@ def main(argv) -> int:
         stopped.set()
 
     threading.Thread(target=until_stdin_closes, daemon=True).start()
-    return record(folder, Speakers(), Microphone(), stopped)
+    return record(folder, Speakers(), Microphone(os.environ.get("MEETING_NOTES_MIC", "")), stopped)
 
 
 if __name__ == "__main__":

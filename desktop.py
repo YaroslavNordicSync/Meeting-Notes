@@ -49,6 +49,18 @@ PLACES = {
 }
 
 
+# How to get a program that is missing, as each system does it.
+INSTALL = {
+    "ollama": {"mac": "brew install ollama", "other": "download it from ollama.com"},
+    "whisper-server": {"mac": "brew install whisper-cpp",
+                       "other": "build whisper.cpp and put whisper-server on the PATH"},
+}
+
+
+def install_hint(program: str) -> str:
+    return INSTALL[program]["mac" if MAC else "other"]
+
+
 def find(program: str) -> str:
     """The path of `program`, or "" when it is not installed."""
     for candidate in (shutil.which(program), *PLACES.get(program, [])):

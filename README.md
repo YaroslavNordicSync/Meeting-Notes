@@ -42,8 +42,10 @@ Swift helper, with the same files and the same events, so everything after it �
 the live transcript, echo removal, speakers, notes — is shared. The other people
 come from a WASAPI loopback of the default speakers, me from the default
 microphone; plugging in headphones moves both to the new devices within a couple
-of seconds, the gap filled with silence. It needs whisper.cpp's `whisper-server`
-on the PATH (`whisper-bin-x64.zip` from its GitHub releases).
+of seconds, the gap filled with silence. Settings › Microphone picks a
+microphone by name instead; while it is not connected, the default one is used.
+whisper.cpp needs no installing: the first recording downloads its Windows build
+(about 9 MB) into the data folder, next to the speech model.
 
 Not there yet, and saying so instead of failing: noticing a call and offering to
 record it, Teams names, Outlook drafts, and a built `.exe`. Linux may run

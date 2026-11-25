@@ -59,6 +59,7 @@ DEFAULTS = {
     "ARCHIVE_DAYS": 30,
     # who "Me" is in a recorded call, for the notes ("" keeps "Me")
     "MY_NAME": "",
+    "MIC": "",                      # the microphone to record from; "" is the system's default
     # mail
     "MAIL_MODE": "outlook_draft", "RECIPIENTS": "", "SMTP_USER": "",
     "SMTP_HOST": "", "SMTP_PORT": 465, "SMTP_FROM": "",

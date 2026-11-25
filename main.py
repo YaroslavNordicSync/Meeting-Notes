@@ -6,6 +6,7 @@ import sys
 import time
 from pathlib import Path
 
+import desktop
 import history
 import llm
 import parser as tparser
@@ -95,7 +96,8 @@ def main():
             print("Add --force to summarise it again.")
             return
         if not llm.OLLAMA.ensure():
-            sys.exit("Ollama could not be started: brew install ollama, or see logs/ollama.log")
+            sys.exit(f"Ollama could not be started: {desktop.install_hint('ollama')}, "
+                     "or see logs/ollama.log")
         try:
             out = process(decision.transcript, model=args.model, progress_cb=show)
         finally:

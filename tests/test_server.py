@@ -136,6 +136,8 @@ def test_settings_change_through_the_controller(api, app, temp_env):
     assert app.changes
     assert api("POST", "/api/settings", {"my_name": "  Yaroslav   N "}) == (200, {"ok": True})
     assert api("GET", "/api/state")[1]["my_name"] == "Yaroslav N"
+    assert api("POST", "/api/settings", {"mic": " Headset (Jabra) "}) == (200, {"ok": True})
+    assert api("GET", "/api/state")[1]["mic"] == "Headset (Jabra)"
 
     assert api("POST", "/api/settings", {"mail_mode": "pigeon"})[0] == 400
     assert api("POST", "/api/settings", {"OLLAMA_URL": "http://evil"})[0] == 400
@@ -343,3 +345,9 @@ def test_the_settings_button_opens_the_accessibility_list(api, monkeypatch):
 
     assert api("POST", "/api/open/accessibility", {}) == (200, {"ok": True})
     assert opened == [1]
+
+
+def test_microphones_are_listed_only_where_one_can_be_chosen(api, monkeypatch):
+    import desktop
+    monkeypatch.setattr(desktop, "WINDOWS", False)
+    assert api("GET", "/api/mics") == (200, {"mics": None})       # a Mac takes its input

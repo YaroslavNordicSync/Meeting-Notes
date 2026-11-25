@@ -5,7 +5,9 @@ of a setting, and neither owns the watcher. `on_change` and `on_notice` are
 called on whatever thread made the change — the menu bar hops to the main thread
 inside them, the window simply polls.
 """
+import json
 import math
+import subprocess
 import threading
 import time
 from pathlib import Path
@@ -21,7 +23,7 @@ import pipeline
 import speakers
 from calls import CallWatch
 from menu import MAIL_MODES
-from recorder import Recorder
+from recorder import Recorder, command as helper_command
 from transcriber import Live
 from watcher import Watcher
 
@@ -120,7 +122,7 @@ class Controller:
         log.info("Keychain: %s", "available" if mailer.keychain_ready() else "NOT available")
         # Ollama itself is woken by the worker when a meeting needs it.
         if not llm.ollama_binary():
-            self._notice("Ollama is not installed", "Install it with: brew install ollama")
+            self._notice("Ollama is not installed", f"Install it: {desktop.install_hint('ollama')}")
         self.probe()
         self.resume_calls()
 
@@ -198,7 +200,8 @@ class Controller:
     def download_model(self):
         """Download the model through the worker, if it is missing."""
         if not self.net.get("ollama_installed"):
-            raise ValueError("Ollama is not installed. Install it with: brew install ollama")
+            raise ValueError("Ollama is not installed. Install it: "
+                             + desktop.install_hint("ollama"))
         if not self.net.get("model_ready"):
             pipeline.WORKER.submit(pipeline.Job(model=llm.MODEL))
             self._notice("Downloading the model", f"{llm.MODEL} — several GB, this takes a while")
@@ -218,6 +221,21 @@ class Controller:
     def set_my_name(self, name: str):
         paths.save_setting("MY_NAME", " ".join(str(name).split()))
         self._changed()
+
+    def set_mic(self, name: str):
+        paths.save_setting("MIC", str(name).strip())
+        self._changed()
+
+    @staticmethod
+    def microphones():
+        """The microphones a call can be recorded from, by name, or None where
+        the recorder cannot choose one (it takes the Mac's current input)."""
+        if not desktop.WINDOWS:
+            return None
+        helper = paths.recorder_binary()
+        r = subprocess.run([*helper_command(helper), "--list"], capture_output=True,
+                           text=True, encoding="utf-8", timeout=20)
+        return json.loads(r.stdout) if r.returncode == 0 else []
 
     def set_call_detect(self, on: bool):
         paths.save_setting("CALL_DETECT", "1" if on else "0")

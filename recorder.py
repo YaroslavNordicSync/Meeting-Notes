@@ -10,6 +10,7 @@ speaking, if it could be read) and, once it stops, the transcript as
 """
 import json
 import logging
+import os
 import subprocess
 import sys
 import threading
@@ -24,6 +25,7 @@ from transcriber import Live
 log = logging.getLogger("pipeline")
 
 STOP_SECONDS = 10
+MIC_ENV = "MEETING_NOTES_MIC"     # the microphone chosen in the settings, for the helper
 NO_NAMES = ("names need the Accessibility permission: System Settings > Privacy & "
             "Security > Accessibility > Meeting Notes")
 # A microphone always hears something; this many seconds of exact zero is a
@@ -81,6 +83,7 @@ class Recorder:
         with self._lock:
             self._state = dict(self._idle(), recording=True, folder=str(folder))
         self.proc = subprocess.Popen([*command(helper), str(folder), speakers.SPEAKING],
+                                     env={**os.environ, MIC_ENV: paths.setting("MIC")},
                                      stdin=subprocess.PIPE,
                                      stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
                                      text=True, bufsize=1)

@@ -6,6 +6,15 @@ its commit message; open problems live in the project note, not here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follow the commit
 messages: `v0.MINOR.PATCH`, MINOR for a feature or substantial change, PATCH for a fix.
 
+## v0.21.0 — 2026-11-25
+### Added
+- Settings › Microphone (Windows): record a call from a chosen microphone; while it is not
+  connected, the system's default one is used.
+- Windows: whisper.cpp is downloaded by the app on the first recording; nothing to install.
+### Changed
+- Install hints match the system: no `brew` outside macOS. The Calls setting shows only where
+  calls can be noticed.
+
 ## v0.20.1 — 2026-11-25
 ### Changed
 - The menu bar (macOS) and tray (Windows) icon is the app icon itself, faded while the folder
