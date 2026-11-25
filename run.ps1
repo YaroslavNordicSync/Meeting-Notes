@@ -2,10 +2,11 @@
 #
 #   powershell -ExecutionPolicy Bypass -File run.ps1
 #
-# Sets up whatever is missing — virtualenv, dependencies, the window, the model —
+# Sets up whatever is missing: virtualenv, dependencies, the window, the model,
 # and then opens the window, with the icon in the tray. Safe to run again at any
 # time. The macOS counterpart is run.sh.
-$ErrorActionPreference = "Stop"
+# Exit codes are checked by hand: with "Stop", Windows PowerShell turns any line
+# a program writes to stderr (a pip notice, a failed import) into a fatal error.
 Set-Location $PSScriptRoot
 
 $Py = ".venv\Scripts\python.exe"

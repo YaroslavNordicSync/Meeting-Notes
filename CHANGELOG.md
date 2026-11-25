@@ -6,6 +6,11 @@ its commit message; open problems live in the project note, not here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follow the commit
 messages: `v0.MINOR.PATCH`, MINOR for a feature or substantial change, PATCH for a fix.
 
+## v0.19.1 — 2026-11-25
+### Fixed
+- `run.ps1` no longer stops at "python.exe : Traceback" on a first run in Windows PowerShell:
+  a program's stderr is no longer treated as a fatal error, and the script is plain ASCII.
+
 ## v0.19.0 — 2026-11-25
 ### Added
 - Meeting Notes runs on Windows from source: `run.ps1` sets it up and starts `tray.py`, the
