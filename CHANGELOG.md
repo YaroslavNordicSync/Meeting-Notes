@@ -6,6 +6,12 @@ its commit message; open problems live in the project note, not here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follow the commit
 messages: `v0.MINOR.PATCH`, MINOR for a feature or substantial change, PATCH for a fix.
 
+## v0.21.1 — 2026-11-25
+### Fixed
+- A recorder that never starts no longer leaves the record button red with the clock still:
+  after 15 s it is stopped and the window says "the recorder did not start", with the reason.
+- What the recorder writes to stderr is kept as `recorder.log` in the recording's folder.
+
 ## v0.21.0 — 2026-11-25
 ### Added
 - Settings › Microphone (Windows): record a call from a chosen microphone; while it is not

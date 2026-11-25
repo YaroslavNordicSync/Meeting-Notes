@@ -25,6 +25,9 @@ from transcriber import Live
 log = logging.getLogger("pipeline")
 
 STOP_SECONDS = 10
+# A helper that has not said "started" by then is stuck opening the devices.
+START_SECONDS = 15
+LOG = "recorder.log"            # what the helper writes to stderr, kept with the recording
 MIC_ENV = "MEETING_NOTES_MIC"     # the microphone chosen in the settings, for the helper
 NO_NAMES = ("names need the Accessibility permission: System Settings > Privacy & "
             "Security > Accessibility > Meeting Notes")
@@ -36,6 +39,15 @@ DEAD_MIC_SECONDS = 5
 def command(helper: Path) -> list:
     """How to run the helper: Windows' is a Python script, run by this Python."""
     return [sys.executable, str(helper)] if helper.suffix == ".py" else [str(helper)]
+
+
+def _last_line(path: Path) -> str:
+    """The helper's last word on stderr, to go with an error: usually the reason."""
+    try:
+        lines = path.read_text(encoding="utf-8", errors="replace").strip().splitlines()
+    except OSError:
+        return ""
+    return f": {lines[-1].strip()}" if lines else ""
 
 
 class Recorder:
@@ -82,13 +94,16 @@ class Recorder:
         self.folder = folder
         with self._lock:
             self._state = dict(self._idle(), recording=True, folder=str(folder))
-        self.proc = subprocess.Popen([*command(helper), str(folder), speakers.SPEAKING],
-                                     env={**os.environ, MIC_ENV: paths.setting("MIC")},
-                                     stdin=subprocess.PIPE,
-                                     stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
-                                     text=True, bufsize=1)
-        threading.Thread(target=self._read, args=(self.proc, folder), name="recorder",
+        with open(folder / LOG, "wb") as errors:
+            self.proc = subprocess.Popen([*command(helper), str(folder), speakers.SPEAKING],
+                                         env={**os.environ, MIC_ENV: paths.setting("MIC")},
+                                         stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                         stderr=errors, text=True, encoding="utf-8", bufsize=1)
+        started = threading.Event()
+        threading.Thread(target=self._read, args=(self.proc, folder, started), name="recorder",
                          daemon=True).start()
+        threading.Thread(target=self._watch_start, args=(self.proc, started),
+                         name="recorder-start", daemon=True).start()
         log.info("Recording into %s", folder)
         return folder
 
@@ -107,7 +122,15 @@ class Recorder:
 
     # -------------------------------------------------- internals
 
-    def _read(self, proc, folder: Path):
+    @staticmethod
+    def _watch_start(proc, started: threading.Event):
+        """Stop a helper that never gets going, so the button does not stay red
+        over a recording that is not happening."""
+        if not started.wait(START_SECONDS) and proc.poll() is None:
+            log.error("The recorder did not start within %d s; stopping it", START_SECONDS)
+            proc.terminate()
+
+    def _read(self, proc, folder: Path, started: threading.Event):
         error, meta, live, dead_mic, speaking = "", {}, None, 0, []
         for line in proc.stdout:
             try:
@@ -116,6 +139,7 @@ class Recorder:
                 continue
             kind = event.get("event")
             if kind == "started":
+                started.set()
                 meta = {k: event.get(k) for k in ("system", "mic", "at")}
                 (folder / "meta.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")
                 self._update(started_at=event.get("at") or 0.0)
@@ -163,6 +187,10 @@ class Recorder:
                 if speaking:
                     speaking.append([round(event.get("seconds", 0.0), 2), []])
         proc.wait()
+        if not started.is_set() and not error:
+            error = "the recorder did not start" + _last_line(folder / LOG)
+        if (folder / LOG).exists() and not (folder / LOG).stat().st_size:
+            (folder / LOG).unlink()             # it had nothing to say
         if speaking:
             (folder / speakers.SPEAKING_FILE).write_text(json.dumps(speaking), encoding="utf-8")
         with self._lock:

@@ -18,6 +18,10 @@ FAKE = textwrap.dedent('''\
     import json, sys, time
     folder = sys.argv[1]
     say = lambda **e: print(json.dumps(e), flush=True)
+    if "{mode}" == "stuck":                     # never gets the devices open
+        time.sleep(60)
+    if "{mode}" == "crash":
+        raise RuntimeError("no audio device")
     if "{mode}" == "fail":
         say(event="error", what="microphone permission was not given", status=-1)
         sys.exit(1)
@@ -193,3 +197,20 @@ def test_the_controller_starts_and_stops_it_and_says_when_it_is_saved(helper):
 
     # The fake helper records silence, so there is nothing to summarise.
     assert wait_until(lambda: notices == ["Recording saved"])
+
+
+@pytest.mark.parametrize("mode, why", [
+    ("stuck", "the recorder did not start"),
+    ("crash", "the recorder did not start: RuntimeError: no audio device"),
+])
+def test_a_helper_that_never_starts_is_stopped_and_says_why(helper, monkeypatch, mode, why):
+    import recorder
+    monkeypatch.setattr(recorder, "START_SECONDS", 0.5)
+    helper(mode)
+    events = []
+    rec = Recorder()
+    rec.on_event = lambda kind, folder, message: events.append((kind, message))
+    rec.start()
+    assert wait_until(lambda: not rec.snapshot()["recording"])     # the button turns back
+    assert rec.snapshot()["error"] == why
+    assert ("error", why) in events
