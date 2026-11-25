@@ -9,16 +9,15 @@ if sys.platform != "win32":
     pytest.skip("the tray app is the Windows app", allow_module_level=True)
 
 import tray  # noqa: E402
+from helpers import wait_until  # noqa: E402
 import parser as tparser  # noqa: E402
 from webview.util import parse_file_type  # noqa: E402
 
 
-def test_the_tray_icon_is_the_menu_bar_shape_in_blue():
-    for paused in (False, True):
-        image = tray.tray_image(paused)
-        assert image.mode == "RGBA"
-        colours = {pixel[:3] for pixel in image.getdata() if pixel[3]}
-        assert colours == {tray.BLUE[:3]}
+def test_the_tray_icon_is_the_app_icon_faded_while_paused():
+    watching, paused = (tray.tray_image(p).convert("RGBA") for p in (False, True))
+    assert watching.size == paused.size == (64, 64)
+    assert paused.getchannel("A").getextrema()[1] < watching.getchannel("A").getextrema()[1]
 
 
 def test_the_pickers_ask_for_transcripts_and_report_a_cancel():
@@ -41,6 +40,7 @@ def test_the_pickers_ask_for_transcripts_and_report_a_cancel():
 def test_closing_the_window_hides_it_until_quit():
     hidden = []
     app = SimpleNamespace(quitting=False, window=SimpleNamespace(hide=lambda: hidden.append(1)))
-    assert tray.TrayApp.closing(app) is False and hidden == [1]
+    assert tray.TrayApp.closing(app) is False
+    assert wait_until(lambda: hidden == [1])
     app.quitting = True
     assert tray.TrayApp.closing(app) is True and hidden == [1]

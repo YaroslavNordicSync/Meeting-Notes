@@ -192,3 +192,28 @@ def test_a_job_says_why_it_waits_when_ollama_is_not_installed(
 
     assert wait_until(lambda: worker.snapshot()["note"] == "Ollama is not installed")
     assert worker.snapshot()["stage"] == "waiting"
+
+
+def test_a_meeting_deleted_while_it_is_summarised_stays_deleted(box, rec, worker, transcript):
+    import archive
+    import history
+    rec.gate = threading.Event()
+    events = []
+    worker.on_event = lambda kind, label, payload: events.append(kind)
+    running, waiting = (read(transcript(box.inbox, n)) for n in ("running.vtt", "waiting.vtt"))
+    history.record(waiting.hash, waiting.src, "found")
+    worker.submit(Job(transcript=running))
+    worker.submit(Job(transcript=waiting))
+    assert rec.entered.wait(15)
+
+    archive.archive_meeting(running.hash)       # deleted mid-run…
+    archive.archive_meeting(waiting.hash)       # …and while still in the queue
+    rec.gate.set()
+    assert wait_until(lambda: not worker.snapshot()["active"] and not worker.snapshot()["queued"])
+
+    assert rec.started == ["running.vtt"], "a deleted meeting was summarised"
+    for t in (running, waiting):
+        assert history.find(t.hash)["status"] == "archived"
+        assert not history.find(t.hash)["notes"]
+    assert not list(box.processed.glob("*.json"))
+    assert events == []                         # no "Notes ready" for either

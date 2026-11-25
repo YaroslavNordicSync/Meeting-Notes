@@ -335,7 +335,8 @@ def parse(path) -> Parsed:
         if lines and lines[0].upper().startswith("WEBVTT"):
             return parse_vtt(path)
         return parse_lines(lines)
-    raise ValueError(f"Unsupported format: {ext}")
+    raise ValueError(f"not a transcript: {ext or 'no extension'}; the app reads "
+                     + ", ".join(sorted(EXTENSIONS)))
 
 
 def to_text(turns) -> str:

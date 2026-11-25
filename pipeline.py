@@ -65,20 +65,36 @@ def _unique(path: Path) -> Path:
     return path.with_name(f"{path.stem}-{stamp}{path.suffix}")
 
 
+class Deleted(Exception):
+    """The meeting was deleted while it waited or was being summarised."""
+
+
+def _deleted(meeting: str) -> bool:
+    row = history.find(meeting)
+    return bool(row) and row["status"] == "archived"
+
+
 def process(t: Transcript, model: str = None, progress_cb=None) -> Path:
     """Summarise one meeting into processed/<name>.json.
 
     The source file is only ever read — never moved, renamed or rewritten. It is
     the user's own download; the history is what remembers it, so there is nothing
     left to achieve by shuffling it into another folder.
+
+    A meeting deleted before or during its run raises Deleted: its notes would
+    otherwise bring it back to the list.
     """
     known = history.find(t.hash)
+    if known and known["status"] == "archived":
+        raise Deleted(t.src.name)
     log.info("Processing %s (%s)", t.src.name, t.hash[:12])
     history.record(t.hash, t.src, "processing")
     try:
         data = llm.summarize(t.turns, {"source": t.src.name, "date": t.date,
                                        "named": t.named},
                              model=model, progress_cb=progress_cb)
+        if _deleted(t.hash):
+            raise Deleted(t.src.name)
 
         # Summarising a meeting again replaces its own notes rather than leaving a
         # second file next to them.
@@ -91,14 +107,19 @@ def process(t: Transcript, model: str = None, progress_cb=None) -> Path:
         log.info("Done: %s (%d turns)", out.name, len(t.turns))
         return out
 
+    except Deleted:
+        log.info("Deleted while it was summarised, notes dropped: %s", t.src.name)
+        raise
     except llm.UNREACHABLE:
         # Ollama is not there. Not a failure: back to found, and the worker holds
         # the job until it answers.
-        history.set_status(t.hash, "found")
+        if not _deleted(t.hash):
+            history.set_status(t.hash, "found")
         raise
     except Exception as e:
         log.error("Failed on %s: %s", t.src.name, e)
-        history.set_status(t.hash, "failed", error=f"{type(e).__name__}: {e}")
+        if not _deleted(t.hash):
+            history.set_status(t.hash, "failed", error=f"{type(e).__name__}: {e}")
         raise
 
 
@@ -311,6 +332,8 @@ class Worker:
                 return
             try:
                 out = process(t, progress_cb=progress)
+            except Deleted:
+                return
             except llm.UNREACHABLE as e:
                 # It went away mid-run. Still not a failure — wait and start over.
                 log.warning("Ollama unreachable during %s, will retry: %s", t.src.name, e)

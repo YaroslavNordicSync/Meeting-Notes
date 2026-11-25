@@ -6,6 +6,15 @@ its commit message; open problems live in the project note, not here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follow the commit
 messages: `v0.MINOR.PATCH`, MINOR for a feature or substantial change, PATCH for a fix.
 
+## v0.20.1 — 2026-11-25
+### Changed
+- The menu bar (macOS) and tray (Windows) icon is the app icon itself, faded while the folder
+  is not watched.
+### Fixed
+- A meeting deleted while its summary was being written no longer comes back with notes.
+- Windows: opening the window from the tray after closing it with ✕ no longer quits the app.
+- A file of another type says which types the app reads, instead of "Unsupported format".
+
 ## v0.20.0 — 2026-11-25
 ### Added
 - Recording a call on Windows: `winrecorder.py` records the speakers (WASAPI loopback) and the

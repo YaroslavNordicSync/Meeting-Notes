@@ -29,17 +29,13 @@ TITLE = "Meeting Notes"
 WIDTH, HEIGHT = 1180, 780
 MIN_SIZE = (820, 520)
 PAPER = "#f6f8fb"                   # the sidebar's white, behind the page until it has drawn
-BLUE = (37, 99, 235, 255)           # the tray icon: the menu bar icon's shape in the accent
 PROBE_EVERY = 20                    # seconds between checks on Ollama
 
 
 def tray_image(paused: bool) -> Image.Image:
-    """The menu bar icon is black for macOS to tint; a tray can be light or
-    dark, so here its shape is filled with the accent."""
-    shape = Image.open(paths.CODE / "assets" / ("icon-paused.png" if paused else "icon.png"))
-    image = Image.new("RGBA", shape.size, BLUE)
-    image.putalpha(shape.convert("RGBA").getchannel("A"))
-    return image
+    """The app icon; faded while the folder is not watched."""
+    name = "app-icon-paused.png" if paused else "app-icon.png"
+    return Image.open(paths.CODE / "assets" / name)
 
 
 class Picker:
@@ -102,10 +98,12 @@ class TrayApp:
             self.window.evaluate_js(f"window.openMeeting && window.openMeeting('{meeting}')")
 
     def closing(self):
-        """The window's ✕ hides it; only Quit ends the app."""
+        """The window's ✕ hides it; only Quit ends the app. The close is called
+        off here, and the window hidden just after, from another thread: hidden
+        from inside its own closing it went on to close, and took the app along."""
         if self.quitting:
             return True
-        self.window.hide()
+        threading.Thread(target=self.window.hide, name="hide", daemon=True).start()
         return False
 
     def loaded(self):

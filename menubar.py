@@ -21,8 +21,9 @@ import desktop
 import parser as tparser
 from controller import Controller
 
-ICON = paths.CODE / "assets" / "icon.png"
-ICON_PAUSED = paths.CODE / "assets" / "icon-paused.png"
+# The app icon itself, in colour; faded while the folder is not watched.
+ICON = paths.CODE / "assets" / "app-icon.png"
+ICON_PAUSED = paths.CODE / "assets" / "app-icon-paused.png"
 
 
 def on_main(fn, *args):
@@ -87,7 +88,8 @@ def notify(title: str, message: str):
 
 class TranscriptApp(rumps.App):
     def __init__(self):
-        super().__init__("Meeting Notes", icon=str(ICON), template=True, quit_button=None)
+        super().__init__("Meeting Notes", icon=str(ICON), template=False,
+                         quit_button=None)
         self.status_items = []
         self.record_item = None
         self.app = Controller()
@@ -117,7 +119,7 @@ class TranscriptApp(rumps.App):
     def changed(self):
         """Something the menu shows changed. Main thread only."""
         self.icon = str(ICON if self.app.watching else ICON_PAUSED)
-        self.template = True
+        self.template = False
         self.rebuild()
 
     def rebuild(self):

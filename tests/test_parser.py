@@ -363,3 +363,10 @@ def test_the_current_docx_header_never_becomes_a_speaker(tmp_path):
 ])
 def test_what_counts_as_a_name(name, ok):
     assert tparser._looks_like_name(name) is ok
+
+
+def test_a_file_of_another_type_says_which_types_are_read(tmp_path):
+    pdf = tmp_path / "slides.pdf"
+    pdf.write_bytes(b"%PDF-1.7")
+    with pytest.raises(ValueError, match=r"not a transcript: \.pdf; the app reads \.docx, .*\.vtt"):
+        tparser.parse(pdf)

@@ -9,7 +9,7 @@ DATA_FILES = [
     # The React build; build.sh runs `npm run build` first.
     ("ui/dist", ["ui/dist/index.html"]),
     ("ui/dist/assets", glob("ui/dist/assets/*")),
-    ("assets", ["assets/icon.png", "assets/icon-paused.png"]),
+    ("assets", ["assets/app-icon.png", "assets/app-icon-paused.png"]),
     ("prompts", ["prompts/map.md", "prompts/reduce.md", "prompts/summary.md"]),
     ("templates", ["templates/email.html"]),
     ("", [".env.example"]),
